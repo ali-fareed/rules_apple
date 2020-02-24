@@ -38,6 +38,48 @@ def _bool_value(ctx, define_name, default):
         ))
     return default
 
+def _string_value(ctx, define_name):
+    """Looks up a define on ctx for a string value.
+
+    Will also report an error if the value is not defined.
+
+    Args:
+      ctx: A skylark context.
+      define_name: The name of the define to look up.
+
+    Returns:
+      The value of the define.
+    """
+    value = ctx.var.get(define_name, None)
+    if value != None:
+        return value
+    fail("Expected value for --define={} was not found".format(
+        define_name,
+    ))
+
+def _resolve_string(ctx, string):
+    """Resolves a string value for a define if necessary
+
+    Args:
+      ctx: A skylark context.
+      string: The name of the define to look up or a string constant.
+
+    Returns:
+      The value of the define if string is formatted like {key}, unmodified string otherwise.
+    """
+    pattern_start = string.find("{")
+    pattern_end = string.find("}")
+    if pattern_start != -1 and pattern_end != -1 and pattern_end > pattern_start:
+      pattern_value = string[(pattern_start + 1):pattern_end]
+      resolved_value = _string_value(
+        ctx,
+        pattern_value,
+      )
+      result_string = string[:pattern_start] + resolved_value + string[pattern_end + 1:]
+      return result_string
+    return string
+
 defines = struct(
     bool_value = _bool_value,
+    resolve_string = _resolve_string,
 )

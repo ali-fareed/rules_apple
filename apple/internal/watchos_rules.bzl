@@ -55,6 +55,10 @@ load(
     "stub_support",
 )
 load(
+    "@build_bazel_rules_apple//apple/internal/utils:defines.bzl",
+    "defines",
+)
+load(
     "@build_bazel_rules_apple//apple:providers.bzl",
     "WatchosApplicationBundleInfo",
     "WatchosExtensionBundleInfo",
@@ -76,7 +80,10 @@ def _watchos_application_impl(ctx):
         xcode_stub_path = rule_descriptor.stub_binary_path,
     )
 
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
 
     bundle_verification_targets = [
         struct(
@@ -169,7 +176,10 @@ def _watchos_extension_impl(ctx):
     binary_artifact = binary_descriptor.artifact
     debug_outputs_provider = binary_descriptor.debug_outputs_provider
 
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
 
     processor_partials = [
         partials.apple_bundle_info_partial(bundle_id = bundle_id),

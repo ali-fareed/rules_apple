@@ -59,6 +59,10 @@ load(
     "SwiftStaticFrameworkInfo",
 )
 load(
+    "@build_bazel_rules_apple//apple/internal/utils:defines.bzl",
+    "defines",
+)
+load(
     "@build_bazel_rules_apple//apple:providers.bzl",
     "AppleBundleInfo",
     "IosApplicationBundleInfo",
@@ -87,7 +91,10 @@ def _ios_application_impl(ctx):
     binary_target = ctx.attr.deps[0]
     binary_artifact = binary_target[apple_common.AppleExecutableBinary].binary
 
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
     bundle_verification_targets = [struct(target = ext) for ext in ctx.attr.extensions]
     embeddable_targets = ctx.attr.frameworks + ctx.attr.extensions
     if ctx.attr.watch_application:
@@ -195,7 +202,10 @@ def _ios_framework_impl(ctx):
     binary_target = ctx.attr.deps[0]
     binary_artifact = binary_target[apple_common.AppleDylibBinary].binary
 
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
 
     processor_partials = [
         partials.apple_bundle_info_partial(bundle_id = bundle_id),
@@ -255,7 +265,10 @@ def _ios_extension_impl(ctx):
     binary_target = ctx.attr.deps[0]
     binary_artifact = binary_target[apple_common.AppleExecutableBinary].binary
 
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
 
     processor_partials = [
         partials.app_assets_validation_partial(
@@ -361,7 +374,10 @@ def _ios_imessage_application_impl(ctx):
         xcode_stub_path = rule_descriptor.stub_binary_path,
     )
 
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
 
     bundle_verification_targets = [struct(target = ctx.attr.extension)]
     embeddable_targets = [ctx.attr.extension]
@@ -421,7 +437,10 @@ def _ios_imessage_extension_impl(ctx):
     binary_artifact = binary_descriptor.artifact
     debug_outputs_provider = binary_descriptor.debug_outputs_provider
 
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
 
     processor_partials = [
         # TODO(kaipi): Refactor this partial into a more generic interface to account for
@@ -488,7 +507,10 @@ def _ios_sticker_pack_extension_impl(ctx):
         xcode_stub_path = rule_descriptor.stub_binary_path,
     )
 
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
 
     processor_partials = [
         # TODO(kaipi): Refactor this partial into a more generic interface to account for

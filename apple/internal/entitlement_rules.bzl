@@ -219,7 +219,10 @@ def _entitlements_impl(ctx):
     # linked into a segment for some build, the output of this rule is an input to
     # almost all the bundling code, so a bad bundle id actually gets here. In an ideal
     # world, validation wouldn't have to happen here.
-    bundle_id = ctx.attr.bundle_id
+    bundle_id = defines.resolve_string(
+        ctx,
+        ctx.attr.bundle_id,
+    )
     bundling_support.validate_bundle_id(bundle_id)
 
     signing_info = _extract_signing_info(ctx)
@@ -262,7 +265,7 @@ def _entitlements_impl(ctx):
         entitlements_options = struct(**entitlements_options),
         output = final_entitlements.path,
         target = str(ctx.label),
-        variable_substitutions = struct(CFBundleIdentifier = ctx.attr.bundle_id),
+        variable_substitutions = struct(CFBundleIdentifier = bundle_id),
     )
     control_file = _new_entitlements_artifact(ctx, "plisttool-control")
     ctx.actions.write(
