@@ -1503,6 +1503,9 @@ class PlistTool(object):
       if key in dest:
         dest_value = dest[key]
 
+        # Temporary workaround for merging Info.plist icons section
+        if key == 'CFBundleIcons':
+          override_collisions = True
         if not override_collisions and src_value != dest_value:
           raise PlistToolError(CONFLICTING_KEYS_MSG % (
               target, key, src_value, dest_value))
