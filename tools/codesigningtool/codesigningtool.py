@@ -59,7 +59,8 @@ def _invoke_codesign(codesign_path, identity, entitlements, force_signing,
     disable_timestamp: If true, disables the use of timestamp services.
     full_path_to_sign: Path to the bundle or binary to code sign as a string.
   """
-  cmd = [codesign_path, "-v", "--sign", identity]
+  #cmd = [codesign_path, "-v", "--sign", identity]
+  cmd = [codesign_path, "--sign", identity]
   if entitlements:
     cmd.extend([
         "--generate-entitlement-der",
@@ -247,7 +248,7 @@ def _find_codesign_identities(identity=None):
   _, output, _ = execute.execute_and_filter_output([
       "security",
       "find-identity",
-      "-v",
+      #"-v",
       "-p",
       "codesigning",
   ], raise_on_failure=True)
