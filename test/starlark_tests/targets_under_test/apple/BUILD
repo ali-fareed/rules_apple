@@ -1,10 +1,7 @@
 load(
-    "//apple/internal:xcframework_rules.bzl",
-    "apple_static_xcframework",
-)  # buildifier: disable=bzl-visibility
-load(
     "//apple:apple.bzl",
     "apple_dynamic_xcframework_import",
+    "apple_static_xcframework",
     "apple_static_xcframework_import",
     "apple_universal_binary",
     "apple_xcframework",
@@ -245,6 +242,41 @@ objc_library(
     tags = TARGETS_UNDER_TEST_TAGS,
 )
 
+objc_library(
+    name = "objc_lib_with_sdk_dylibs_and_sdk_framework",
+    srcs = [
+        "//test/starlark_tests/resources:shared.h",
+        "//test/starlark_tests/resources:shared.m",
+    ],
+    linkopts = ["-lc++"],
+    sdk_dylibs = ["libsqlite3"],
+    sdk_frameworks = ["UIKit"],
+    tags = TARGETS_UNDER_TEST_TAGS,
+)
+
+swift_library(
+    name = "swift_lib_for_static_xcfmwk",
+    srcs = ["DummyFmwk.swift"],
+    module_name = "ios_static_xcfmwk_with_swift",
+    tags = TARGETS_UNDER_TEST_TAGS,
+)
+
+swift_library(
+    name = "swift_lib_for_static_xcfmwk_with_headers",
+    srcs = ["DummyFmwk.swift"],
+    generates_header = True,
+    module_name = "ios_static_xcfmwk_with_swift_generated_headers",
+    tags = TARGETS_UNDER_TEST_TAGS,
+)
+
+swift_library(
+    name = "swift_lib_for_static_xcfmwk_custom_bundle_name",
+    srcs = ["DummyFmwk.swift"],
+    generates_header = True,
+    module_name = "ios_static_xcfmwk_with_custom_bundle_name",
+    tags = TARGETS_UNDER_TEST_TAGS,
+)
+
 swift_library(
     name = "swift_fmwk_lib",
     srcs = [
@@ -275,6 +307,54 @@ apple_xcframework(
     deps = [":fmwk_lib"],
 )
 
+genrule(
+    name = "generate_umbrella_header",
+    outs = ["Umbrella.h"],
+    cmd = 'echo "#import \\"shared.h\\"" > $(OUTS)',
+)
+
+apple_xcframework(
+    name = "ios_dynamic_xcframework_umbrella_header",
+    bundle_id = "com.google.example",
+    framework_type = ["dynamic"],
+    infoplists = [
+        "//test/starlark_tests/resources:Info.plist",
+    ],
+    ios = {
+        "simulator": ["x86_64"],
+        "device": ["arm64"],
+    },
+    minimum_os_versions = {
+        "ios": "8.0",
+    },
+    public_hdrs = [
+        "//test/starlark_tests/resources:shared.h",
+    ],
+    tags = TARGETS_UNDER_TEST_TAGS,
+    umbrella_header = ":generate_umbrella_header",
+    deps = [":fmwk_lib"],
+)
+
+apple_static_xcframework(
+    name = "ios_static_xcframework_umbrella_header",
+    ios = {
+        "simulator": [
+            "x86_64",
+            "arm64",
+        ],
+        "device": ["arm64"],
+    },
+    minimum_os_versions = {
+        "ios": "8.0",
+    },
+    public_hdrs = [
+        "//test/starlark_tests/resources:shared.h",
+    ],
+    tags = TARGETS_UNDER_TEST_TAGS,
+    umbrella_header = ":generate_umbrella_header",
+    deps = [":fmwk_lib"],
+)
+
 # Generate importable dynamic XCFramework files
 genrule(
     name = "generated_ios_dynamic_xcframework",
@@ -300,7 +380,7 @@ genrule(
         ]
     ],
     cmd = """
-unzip -qq $(execpath :ios_dynamic_xcframework.xcframework.zip) -d $(RULEDIR)
+unzip -oqq $(execpath :ios_dynamic_xcframework.xcframework.zip) -d $(RULEDIR)
 """,
 )
 
@@ -315,17 +395,17 @@ genrule(
             platform_id,
             file,
         )
+        for (platform_id, platform) in [
+            ("ios-arm64", "device"),
+            ("ios-arm64_x86_64-simulator", "simulator"),
+        ]
         for file in [
             "Headers/shared.h",
-            "ios_static_xcframework.apple_static_library_lipo.a",
-        ]
-        for platform_id in [
-            "ios-arm64",
-            "ios-arm64_x86_64-simulator",
+            "ios_static_xcframework.a",
         ]
     ],
     cmd = """
-unzip -qq $(execpath :ios_static_xcframework.xcframework.zip) -d $(RULEDIR)
+unzip -oqq $(execpath :ios_static_xcframework.xcframework.zip) -d $(RULEDIR)
 """,
 )
 
@@ -341,20 +421,20 @@ genrule(
             platform_id,
             file,
         )
+        for (platform_id, platform) in [
+            ("ios-arm64", "device"),
+            ("ios-arm64_x86_64-simulator", "simulator"),
+        ]
         for file in [
             "Headers/shared.h",
             "Modules/module.modulemap",
-            "ios_static_xcframework_with_module_map.apple_static_library_lipo.a",
-        ]
-        for platform_id in [
-            "ios-arm64",
-            "ios-arm64_x86_64-simulator",
+            "ios_static_xcframework_with_module_map.a",
         ]
     ],
     # rules_apple can't generate static XCFrameworks that are importable from
     # Swift now, but those exist. This manually generates one for testing.
     cmd = """
-unzip -qq $(execpath :ios_static_xcframework_with_module_map.xcframework.zip) -d $(RULEDIR)
+unzip -oqq $(execpath :ios_static_xcframework_with_module_map.xcframework.zip) -d $(RULEDIR)
 
 xcframework_path="$(RULEDIR)/ios_static_xcframework_with_module_map.xcframework"
 declare -a platform_ids=( ios-arm64 ios-arm64_x86_64-simulator )
@@ -386,6 +466,7 @@ genrule(
             file,
         )
         for file in [
+            "Headers/ios_static_xcframework.h",
             "Headers/shared.h",
             "Modules/module.modulemap",
             "ios_xcframework_bundling_static_fmwks",
@@ -423,16 +504,12 @@ do
   platform_dir="$$xcframework_path/$$platform_id"
   framework_dir="$$platform_dir/$$xcframework_name.framework"
   mkdir -p "$$framework_dir"
-  mv "$$platform_dir/ios_static_xcframework.apple_static_library_lipo.a" "$$framework_dir/$$xcframework_name"
-  mv "$$platform_dir/Headers" "$$framework_dir/"
-
+  mv "$$platform_dir/ios_static_xcframework"*.a "$$framework_dir/$$xcframework_name"
   modules_dir="$$framework_dir/Modules"
   mkdir -p "$$modules_dir"
-  cat > "$$modules_dir/module.modulemap" << EOF
-module ios_xcframework_bundling_static_fmwks {
-  umbrella "Headers"
-}
-EOF
+  mv "$$platform_dir/Headers/module.modulemap" "$$modules_dir/"
+  sed -i "" "s/^module/framework module/g" "$$modules_dir/module.modulemap"
+  mv "$$platform_dir/Headers" "$$framework_dir/"
 done
 """,
 )
@@ -811,6 +888,92 @@ apple_static_xcframework(
     deps = [":StaticFmwkUpperLib"],
 )
 
+apple_static_xcframework(
+    name = "ios_static_xcfmwk_with_objc_sdk_dylibs_and_and_sdk_frameworks",
+    ios = {
+        "device": ["arm64"],
+    },
+    minimum_os_versions = {
+        "ios": "8.0",
+    },
+    public_hdrs = [
+        "//test/starlark_tests/resources:shared.h",
+    ],
+    tags = TARGETS_UNDER_TEST_TAGS,
+    deps = [":objc_lib_with_sdk_dylibs_and_sdk_framework"],
+)
+
+apple_static_xcframework(
+    name = "ios_static_xcfmwk_with_swift",
+    ios = {
+        "device": ["arm64"],
+        "simulator": [
+            "x86_64",
+            "arm64",
+        ],
+    },
+    minimum_os_versions = {
+        "ios": "8.0",
+    },
+    tags = TARGETS_UNDER_TEST_TAGS,
+    deps = [":swift_lib_for_static_xcfmwk"],
+)
+
+apple_static_xcframework(
+    name = "ios_static_xcfmwk_with_swift_and_bundle_name",
+    bundle_name = "ios_static_xcfmwk_with_custom_bundle_name",
+    ios = {
+        "device": ["arm64"],
+        "simulator": [
+            "x86_64",
+            "arm64",
+        ],
+    },
+    minimum_os_versions = {
+        "ios": "8.0",
+    },
+    tags = TARGETS_UNDER_TEST_TAGS,
+    deps = [":swift_lib_for_static_xcfmwk_custom_bundle_name"],
+)
+
+apple_static_xcframework(
+    name = "ios_static_xcfmwk_with_swift_generated_headers",
+    ios = {
+        "device": ["arm64"],
+        "simulator": [
+            "x86_64",
+            "arm64",
+        ],
+    },
+    minimum_os_versions = {
+        "ios": "8.0",
+    },
+    public_hdrs = [
+        "//test/starlark_tests/resources:shared.h",
+    ],
+    tags = TARGETS_UNDER_TEST_TAGS,
+    deps = [":swift_lib_for_static_xcfmwk_with_headers"],
+)
+
+apple_static_xcframework(
+    name = "ios_static_xcframework_min_os_12",
+    ios = {
+        "simulator": [
+            "arm64",
+            "x86_64",
+        ],
+        "device": [
+            "arm64",
+            "x86_64",
+        ],
+    },
+    minimum_os_versions = {
+        "ios": "12.0",
+    },
+    tags = TARGETS_UNDER_TEST_TAGS,
+    deps = [":fmwk_lib"],
+)
+
 genrule(
     name = "dummy_fmwk_objc_hdr",
     outs = ["DummyFmwk.h"],
@@ -862,6 +1025,18 @@ swift_library(
 apple_universal_binary(
     name = "multi_arch_cc_binary",
     binary = "//test/starlark_tests/resources:cc_test_binary",
+    minimum_os_version = "11.0",
+    platform_type = "macos",
+    tags = TARGETS_UNDER_TEST_TAGS,
+)
+
+apple_universal_binary(
+    name = "multi_arch_forced_cpus_cc_binary",
+    binary = "//test/starlark_tests/resources:cc_test_binary",
+    forced_cpus = [
+        "x86_64",
+        "arm64",
+    ],
     minimum_os_version = "11.0",
     platform_type = "macos",
     tags = TARGETS_UNDER_TEST_TAGS,
