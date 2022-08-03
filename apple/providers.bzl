@@ -143,6 +143,20 @@ number information propagated by the target. It contains two keys:
     },
 )
 
+AppleDsymBundleInfo = provider(
+    doc = "Provides information for an Apple dSYM bundle.",
+    fields = {
+        "direct_dsyms": """
+`List` containing `File` references to each of the dSYM bundles that act as direct dependencies of
+the given target if any were generated.
+""",
+        "transitive_dsyms": """
+`Depset` containing `File` references to each of the dSYM bundles that act as transitive
+dependencies of the given target if any were generated.
+""",
+    },
+)
+
 AppleExtraOutputsInfo = provider(
     doc = """
 Provides information about extra outputs that should be produced from the build.
@@ -216,6 +230,22 @@ def merge_apple_framework_import_info(apple_framework_import_infos):
         framework_imports = depset(transitive = transitive_sets),
         build_archs = depset(transitive = build_archs),
     )
+
+AppleProvisioningProfileInfo = provider(
+    doc = "Provides information about a provisioning profile.",
+    fields = {
+        "provisioning_profile": """
+`File`. The provisioning profile.
+""",
+        "profile_name": """\
+string. The profile name (e.g. "iOS Team Provisioning Profile: com.example.app").
+""",
+        "team_id": """\
+`string`. The Team ID the profile is associated with (e.g. "A12B3CDEFG"), or `None` if it's not
+known at analysis time.
+""",
+    },
+)
 
 AppleResourceInfo = provider(
     doc = "Provider that propagates buckets of resources that are differentiated by type.",

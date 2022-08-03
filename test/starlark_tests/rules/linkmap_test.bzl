@@ -36,7 +36,9 @@ def _linkmap_test_impl(ctx):
 
     if not architectures:
         platform_type = target_under_test[AppleBundleInfo].platform_type
-        if platform_type == "watchos":
+        if platform_type == "ios" or platform_type == "macos":
+            architectures = [ctx.fragments.apple.single_arch_cpu]
+        elif platform_type == "watchos":
             architectures = ["i386"]
         else:
             architectures = ["x86_64"]
@@ -95,4 +97,5 @@ provided.
     config_settings = {
         "//command_line_option:objc_generate_linkmap": "true",
     },
+    fragments = ["apple"],
 )

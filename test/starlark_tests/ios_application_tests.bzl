@@ -107,6 +107,96 @@ def ios_application_test_suite(name):
         tags = [name],
     )
 
+    # Verify ios_application with imported dynamic framework bundles files for Objective-C/Swift
+    archive_contents_test(
+        name = "{}_with_imported_dynamic_fmwk_bundles_files".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:app_with_imported_fmwk",
+        contains = [
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Info.plist",
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/iOSDynamicFramework",
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Resources/iOSDynamicFramework.bundle/Info.plist",
+        ],
+        not_contains = [
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Headers/SharedClass.h",
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Headers/iOSDynamicFramework.h",
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Modules/module.modulemap",
+        ],
+        tags = [name],
+    )
+    archive_contents_test(
+        name = "{}_swift_with_imported_dynamic_fmwk_bundles_files".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:swift_app_with_imported_dynamic_fmwk",
+        contains = [
+            "$BUNDLE_ROOT/Frameworks/libswiftCore.dylib",
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Info.plist",
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/iOSDynamicFramework",
+        ],
+        not_contains = [
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Headers/SharedClass.h",
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Headers/iOSDynamicFramework.h",
+            "$BUNDLE_ROOT/Frameworks/iOSDynamicFramework.framework/Modules/module.modulemap",
+        ],
+        tags = [name],
+    )
+
+    # Verify ios_application with imported static framework contains symbols for Objective-C/Swift,
+    # and resource bundles; but does not bundle the static library.
+    archive_contents_test(
+        name = "{}_with_imported_static_fmwk_contains_symbols_and_bundles_resources".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:app_with_imported_static_fmwk",
+        binary_test_file = "$BINARY",
+        binary_test_architecture = "x86_64",
+        binary_contains_symbols = [
+            "-[SharedClass doSomethingShared]",
+            "_OBJC_CLASS_$_SharedClass",
+        ],
+        contains = ["$BUNDLE_ROOT/iOSStaticFramework.bundle/Info.plist"],
+        not_contains = ["$BUNDLE_ROOT/Frameworks/iOSStaticFramework.framework"],
+        tags = [name],
+    )
+    archive_contents_test(
+        name = "{}_with_imported_swift_static_fmwk_contains_symbols_and_not_bundles_files".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:app_with_imported_swift_static_fmwk",
+        binary_test_file = "$BINARY",
+        binary_test_architecture = "x86_64",
+        binary_contains_symbols = [
+            "_OBJC_CLASS_$__TtC23iOSSwiftStaticFramework11SharedClass",
+        ],
+        not_contains = ["$BUNDLE_ROOT/Frameworks/iOSSwiftStaticFramework.framework"],
+        tags = [name],
+    )
+    archive_contents_test(
+        name = "{}_with_imported_swift_static_fmwk_and_no_swift_module_interface_file_contains_symbols_and_not_bundles_files".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:app_with_imported_swift_static_fmwk_without_module_interface_files",
+        binary_test_file = "$BINARY",
+        binary_test_architecture = "x86_64",
+        binary_contains_symbols = [
+            "_OBJC_CLASS_$__TtC23iOSSwiftStaticFramework11SharedClass",
+        ],
+        contains = ["$BUNDLE_ROOT/Frameworks/libswiftCore.dylib"],
+        not_contains = ["$BUNDLE_ROOT/Frameworks/iOSSwiftStaticFramework.framework"],
+        tags = [name],
+    )
+    archive_contents_test(
+        name = "{}_swift_with_imported_static_fmwk_contains_symbols_and_not_bundles_files".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:swift_app_with_imported_static_fmwk",
+        binary_test_file = "$BINARY",
+        binary_test_architecture = "x86_64",
+        binary_contains_symbols = [
+            "-[SharedClass doSomethingShared]",
+            "_OBJC_CLASS_$_SharedClass",
+        ],
+        contains = ["$BUNDLE_ROOT/Frameworks/libswiftCore.dylib"],
+        not_contains = ["$BUNDLE_ROOT/Frameworks/iOSStaticFramework.framework"],
+        tags = [name],
+    )
+
     apple_verification_test(
         name = "{}_fmwk_with_imported_fmwk_codesign_test".format(name),
         build_type = "simulator",
@@ -264,14 +354,24 @@ def ios_application_test_suite(name):
     dsyms_test(
         name = "{}_dsyms_test".format(name),
         target_under_test = "//test/starlark_tests/targets_under_test/ios:app",
-        expected_dsyms = ["app.app"],
+        expected_direct_dsyms = ["app.app"],
+        expected_transitive_dsyms = ["app.app"],
+        tags = [name],
+    )
+
+    dsyms_test(
+        name = "{}_transitive_dsyms_test".format(name),
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:app_with_ext_and_fmwk_provisioned",
+        expected_direct_dsyms = ["app_with_ext_and_fmwk_provisioned.app"],
+        expected_transitive_dsyms = ["app_with_ext_and_fmwk_provisioned.app", "ext_with_fmwk_provisioned.appex", "fmwk_with_provisioning.framework"],
         tags = [name],
     )
 
     dsyms_test(
         name = "{}_custom_executable_name_dsyms_test".format(name),
         target_under_test = "//test/starlark_tests/targets_under_test/ios:app_with_custom_executable_name",
-        expected_dsyms = ["custom_bundle_name.app"],
+        expected_direct_dsyms = ["custom_bundle_name.app"],
+        expected_transitive_dsyms = ["custom_bundle_name.app"],
         expected_binaries = [
             "custom_bundle_name.app.dSYM/Contents/Resources/DWARF/app.exe",
         ],

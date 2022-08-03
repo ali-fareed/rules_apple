@@ -274,7 +274,6 @@ def _apple_test_bundle_impl(ctx):
     actions = ctx.actions
     apple_mac_toolchain_info = ctx.attr._mac_toolchain[AppleMacToolsToolchainInfo]
     apple_xplat_toolchain_info = ctx.attr._xplat_toolchain[AppleXPlatToolsToolchainInfo]
-    bin_root_path = ctx.bin_dir.path
     bundle_name, bundle_extension = bundling_support.bundle_full_name_from_rule_ctx(ctx)
     executable_name = bundling_support.executable_name(ctx)
     config_vars = ctx.var
@@ -337,6 +336,8 @@ def _apple_test_bundle_impl(ctx):
     if bundle_loader:
         targets_to_avoid.append(bundle_loader)
 
+    embeddable_targets = ctx.attr.deps + getattr(ctx.attr, "frameworks", [])
+
     processor_partials = [
         partials.apple_bundle_info_partial(
             actions = actions,
@@ -367,7 +368,6 @@ def _apple_test_bundle_impl(ctx):
         ),
         partials.debug_symbols_partial(
             actions = actions,
-            bin_root_path = bin_root_path,
             bundle_extension = bundle_extension,
             bundle_name = bundle_name,
             debug_dependencies = debug_dependencies,
@@ -376,11 +376,10 @@ def _apple_test_bundle_impl(ctx):
             executable_name = executable_name,
             linkmaps = debug_outputs.linkmaps,
             platform_prerequisites = platform_prerequisites,
-            rule_label = label,
         ),
         partials.embedded_bundles_partial(
             bundle_embedded_bundles = True,
-            embeddable_targets = getattr(ctx.attr, "frameworks", []),
+            embeddable_targets = embeddable_targets,
             platform_prerequisites = platform_prerequisites,
         ),
         partials.framework_import_partial(

@@ -78,7 +78,8 @@ def ios_unit_test_test_suite(name):
     dsyms_test(
         name = "{}_dsyms_test".format(name),
         target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test",
-        expected_dsyms = ["unit_test.xctest"],
+        expected_direct_dsyms = ["unit_test.xctest"],
+        expected_transitive_dsyms = ["unit_test.xctest", "app.app"],
         tags = [name],
     )
 
@@ -99,6 +100,16 @@ def ios_unit_test_test_suite(name):
             "$BUNDLE_ROOT/Frameworks/fmwk.framework/fmwk",
         ],
         target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test_with_fmwk",
+        tags = [name],
+    )
+
+    archive_contents_test(
+        name = "{}_test_target_bundles_framework_from_objc_library_runtime_deps".format(name),
+        build_type = "simulator",
+        contains = [
+            "$BUNDLE_ROOT/Frameworks/fmwk_8_0_minimum.framework/fmwk_8_0_minimum",
+        ],
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test_with_fmwk_from_objc_library_runtime_deps",
         tags = [name],
     )
 

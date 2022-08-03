@@ -119,6 +119,25 @@ Provides versioning information for an Apple bundle.
 | <a id="AppleBundleVersionInfo-version_file"></a>version_file |  A <code>File</code> containing JSON-formatted text describing the version number information propagated by the target. It contains two keys: <code>build_version</code>, which corresponds to <code>CFBundleVersion</code>; and <code>short_version_string</code>, which corresponds to <code>CFBundleShortVersionString</code>.    |
 
 
+<a id="AppleDsymBundleInfo"></a>
+
+## AppleDsymBundleInfo
+
+<pre>
+AppleDsymBundleInfo(<a href="#AppleDsymBundleInfo-direct_dsyms">direct_dsyms</a>, <a href="#AppleDsymBundleInfo-transitive_dsyms">transitive_dsyms</a>)
+</pre>
+
+Provides information for an Apple dSYM bundle.
+
+**FIELDS**
+
+
+| Name  | Description |
+| :------------- | :------------- |
+| <a id="AppleDsymBundleInfo-direct_dsyms"></a>direct_dsyms |  <code>List</code> containing <code>File</code> references to each of the dSYM bundles that act as direct dependencies of the given target if any were generated.    |
+| <a id="AppleDsymBundleInfo-transitive_dsyms"></a>transitive_dsyms |  <code>Depset</code> containing <code>File</code> references to each of the dSYM bundles that act as transitive dependencies of the given target if any were generated.    |
+
+
 <a id="AppleExtraOutputsInfo"></a>
 
 ## AppleExtraOutputsInfo
@@ -166,6 +185,26 @@ Provider that propagates information about framework import targets.
 | <a id="AppleFrameworkImportInfo-dsym_imports"></a>dsym_imports |  Depset of Files that represent dSYM imports that need to be processed to provide .symbols files for packaging into the .ipa file if requested in the build with --define=apple.package_symbols=(yes|true|1).    |
 | <a id="AppleFrameworkImportInfo-build_archs"></a>build_archs |  Depset of strings that represent binary architectures reported from the current build.    |
 | <a id="AppleFrameworkImportInfo-debug_info_binaries"></a>debug_info_binaries |  Depset of Files that represent framework binaries and dSYM binaries that provide debug info.    |
+
+
+<a id="AppleProvisioningProfileInfo"></a>
+
+## AppleProvisioningProfileInfo
+
+<pre>
+AppleProvisioningProfileInfo(<a href="#AppleProvisioningProfileInfo-provisioning_profile">provisioning_profile</a>, <a href="#AppleProvisioningProfileInfo-profile_name">profile_name</a>, <a href="#AppleProvisioningProfileInfo-team_id">team_id</a>)
+</pre>
+
+Provides information about a provisioning profile.
+
+**FIELDS**
+
+
+| Name  | Description |
+| :------------- | :------------- |
+| <a id="AppleProvisioningProfileInfo-provisioning_profile"></a>provisioning_profile |  <code>File</code>. The provisioning profile.    |
+| <a id="AppleProvisioningProfileInfo-profile_name"></a>profile_name |  string. The profile name (e.g. "iOS Team Provisioning Profile: com.example.app").    |
+| <a id="AppleProvisioningProfileInfo-team_id"></a>team_id |  <code>string</code>. The Team ID the profile is associated with (e.g. "A12B3CDEFG"), or <code>None</code> if it's not known at analysis time.    |
 
 
 <a id="AppleResourceBundleInfo"></a>

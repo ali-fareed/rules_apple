@@ -49,7 +49,8 @@ def tvos_extension_test_suite(name):
     dsyms_test(
         name = "{}_dsyms_test".format(name),
         target_under_test = "//test/starlark_tests/targets_under_test/tvos:ext",
-        expected_dsyms = ["ext.appex"],
+        expected_direct_dsyms = ["ext.appex"],
+        expected_transitive_dsyms = ["ext.appex"],
         tags = [name],
     )
 
@@ -97,6 +98,18 @@ def tvos_extension_test_suite(name):
         contains = [
             "$BUNDLE_ROOT/embedded.mobileprovision",
         ],
+        tags = [name],
+    )
+
+    archive_contents_test(
+        name = "{}_correct_rpath_header_value_test".format(name),
+        build_type = "device",
+        binary_test_file = "$CONTENT_ROOT/ext",
+        macho_load_commands_contain = [
+            "path @executable_path/Frameworks (offset 12)",
+            "path @executable_path/../../Frameworks (offset 12)",
+        ],
+        target_under_test = "//test/starlark_tests/targets_under_test/tvos:ext",
         tags = [name],
     )
 
