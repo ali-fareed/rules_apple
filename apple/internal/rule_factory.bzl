@@ -209,6 +209,12 @@ AppleTestRunnerInfo provider.
         ),
         cfg = "exec",
     ),
+    "test_filter": attr.string(
+        doc = """
+Test filter string that will be passed into the test runner to select which tests will run.
+""",
+        default = "",
+    ),
 }
 
 def _common_binary_linking_attrs(deps_cfg, product_type):
@@ -691,6 +697,11 @@ Info.plist under the key `UILaunchStoryboardName`.
                 mandatory = test_host_mandatory,
                 providers = required_providers,
             ),
+            "_swizzle_absolute_xcttestsourcelocation": attr.label(
+                default = Label(
+                    "@build_bazel_apple_support//lib:swizzle_absolute_xcttestsourcelocation",
+                ),
+            ),
         })
 
     # TODO(kaipi): Once all platforms have framework rules, move this into
@@ -820,6 +831,11 @@ set, then the default extension is determined by the application's product_type.
                     [AppleBundleInfo, MacosExtensionBundleInfo],
                 ],
             ),
+            "_swizzle_absolute_xcttestsourcelocation": attr.label(
+                default = Label(
+                    "@build_bazel_apple_support//lib:swizzle_absolute_xcttestsourcelocation",
+                ),
+            ),
         })
 
     return attrs
@@ -910,6 +926,11 @@ fashion, such as a Cocoapod.
                     [AppleBundleInfo, TvosExtensionBundleInfo],
                 ],
             ),
+            "_swizzle_absolute_xcttestsourcelocation": attr.label(
+                default = Label(
+                    "@build_bazel_apple_support//lib:swizzle_absolute_xcttestsourcelocation",
+                ),
+            ),
         })
 
     # TODO(kaipi): Once all platforms have framework rules, move this into
@@ -938,12 +959,23 @@ def _get_watchos_attrs(rule_descriptor):
     attrs = []
 
     if rule_descriptor.product_type == apple_product_type.watch2_extension:
-        attrs.append({"extensions": attr.label_list(
-            providers = [[AppleBundleInfo, WatchosExtensionBundleInfo]],
-            doc = """
+        attrs.append({
+            "extensions": attr.label_list(
+                providers = [[AppleBundleInfo, WatchosExtensionBundleInfo]],
+                doc = """
 A list of watchOS application extensions to include in the final watch extension bundle.
 """,
-        )})
+            ),
+            "application_extension": attr.bool(
+                default = False,
+                doc = """
+If `True`, this extension is an App Extension instead of a WatchKit Extension.
+It links the extension with the application extension point (`_NSExtensionMain`)
+instead of the WatchKit extension point (`_WKExtensionMain`), and has the
+`app_extension` `product_type` instead of `watch2_extension`.
+""",
+            ),
+        })
     if rule_descriptor.product_type == apple_product_type.watch2_application:
         attrs.append({
             "extension": attr.label(
@@ -1041,6 +1073,11 @@ fashion, such as a Cocoapod.
                 aspects = [framework_provider_aspect],
                 mandatory = test_host_mandatory,
                 providers = [AppleBundleInfo, WatchosApplicationBundleInfo],
+            ),
+            "_swizzle_absolute_xcttestsourcelocation": attr.label(
+                default = Label(
+                    "@build_bazel_apple_support//lib:swizzle_absolute_xcttestsourcelocation",
+                ),
             ),
         })
 
@@ -1201,7 +1238,7 @@ binaries/libraries will be created combining all architectures specified by
         executable = is_executable,
         fragments = ["apple", "cpp", "objc"],
         outputs = implicit_outputs,
-        toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
+        toolchains = use_cpp_toolchain(),
     )
 
 def _create_apple_bundling_rule(
@@ -1298,7 +1335,7 @@ def _create_apple_test_rule(implementation, doc, platform_type):
         ),
         doc = doc,
         test = True,
-        toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
+        toolchains = use_cpp_toolchain(),
     )
 
 rule_factory = struct(

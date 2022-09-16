@@ -327,6 +327,7 @@ same profile name.
 
 ## Example
 
+```starlark
 load("@build_bazel_rules_apple//apple:apple.bzl", "local_provisioning_profile")
 
 local_provisioning_profile(
@@ -350,6 +351,7 @@ ios_application(
     ...
     provisioning_profile = ":app_release_profile",
 )
+```
 
 
 **ATTRIBUTES**
@@ -372,7 +374,7 @@ provisioning_profile_repository(<a href="#provisioning_profile_repository-name">
 
 
 This rule declares an external repository for discovering locally installed
-provisioning profiles. This is consumed by `ios_local_provisioning_profile`.
+provisioning profiles. This is consumed by `local_provisioning_profile`.
 You can optionally set 'fallback_profiles' to point at a stable location of
 profiles if a newer version of the desired profile does not exist on the local
 machine. This is useful for checking in the current version of the profile, but
@@ -382,15 +384,18 @@ not having to update it every time a new device or certificate is added.
 
 ### In your `WORKSPACE` file:
 
+```starlark
 load("@build_bazel_rules_apple//apple:apple.bzl", "provisioning_profile_repository")
 
 provisioning_profile_repository(
     name = "local_provisioning_profiles",
     fallback_profiles = "//path/to/some:filegroup", # Optional profiles to use if one isn't found locally
 )
+```
 
 ### In your `BUILD` files (see `local_provisioning_profile` for more examples):
 
+```starlark
 load("@build_bazel_rules_apple//apple:apple.bzl", "local_provisioning_profile")
 
 local_provisioning_profile(
@@ -404,6 +409,7 @@ ios_application(
     ...
     provisioning_profile = ":app_debug_profile",
 )
+```
 
 
 **ATTRIBUTES**

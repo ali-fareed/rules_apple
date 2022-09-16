@@ -207,7 +207,7 @@ def _command_line_options(
             settings["//command_line_option:apple_crosstool_top"]
         ),
         "//command_line_option:fission": [],
-        "//command_line_option:grte_top": settings["//command_line_option:apple_grte_top"],
+        "//command_line_option:grte_top": None,
         "//command_line_option:platforms": [apple_platforms[0]] if apple_platforms else [],
         "//command_line_option:ios_minimum_os": _min_os_version_or_none(
             minimum_os_version = minimum_os_version,
@@ -232,19 +232,6 @@ def _command_line_options(
     }
 
     output_dictionary["@build_bazel_rules_swift//swift:emit_swiftinterface"] = emit_swiftinterface
-
-    # Without handling this flag our transition differs from what we get
-    # from bazel when the dependency tree contains a rule inheriting bazel's
-    # built in transitions. This flag should not be used, we can remove this
-    # once https://github.com/bazelbuild/bazel/pull/13872 is merged
-    if platform_type == "ios":
-        output_dictionary["//command_line_option:ios_cpu"] = _cpu_string(
-            cpu = cpu,
-            platform_type = platform_type,
-            settings = settings,
-        )[len("ios_"):]
-    else:
-        output_dictionary["//command_line_option:ios_cpu"] = ""
 
     return output_dictionary
 
@@ -350,7 +337,6 @@ def _apple_rule_base_transition_impl(settings, attr):
 _apple_rule_common_transition_inputs = [
     "//command_line_option:apple_compiler",
     "//command_line_option:apple_crosstool_top",
-    "//command_line_option:apple_grte_top",
 ]
 _apple_rule_base_transition_inputs = _apple_rule_common_transition_inputs + [
     "//command_line_option:cpu",
@@ -371,7 +357,6 @@ _apple_rule_base_transition_outputs = [
     "//command_line_option:apple_split_cpu",
     "//command_line_option:compiler",
     "//command_line_option:cpu",
-    "//command_line_option:ios_cpu",
     "//command_line_option:crosstool_top",
     "//command_line_option:fission",
     "//command_line_option:grte_top",
@@ -484,7 +469,14 @@ def _apple_platform_split_transition_impl(settings, attr):
         platform_type = attr.platform_type
         cpus = settings[_platform_specific_cpu_setting_name(platform_type)]
         if not cpus:
-            cpus = [_platform_specific_default_cpu(platform_type)]
+            if platform_type == "ios":
+                # Legacy exception to interpret the --cpu as an iOS arch.
+                cpu_value = settings["//command_line_option:cpu"]
+                if cpu_value.startswith("ios_"):
+                    cpus = [cpu_value[4:]]
+            if not cpus:
+                # Set the default cpu for the given platform type.
+                cpus = [_platform_specific_default_cpu(platform_type)]
         for cpu in cpus:
             found_cpu = _cpu_string(
                 cpu = cpu,

@@ -124,10 +124,10 @@ Builds and bundles a watchOS dynamic framework that is consumable by Xcode.
 ## watchos_extension
 
 <pre>
-watchos_extension(<a href="#watchos_extension-name">name</a>, <a href="#watchos_extension-additional_linker_inputs">additional_linker_inputs</a>, <a href="#watchos_extension-bundle_id">bundle_id</a>, <a href="#watchos_extension-bundle_name">bundle_name</a>, <a href="#watchos_extension-codesign_inputs">codesign_inputs</a>,
-                  <a href="#watchos_extension-codesignopts">codesignopts</a>, <a href="#watchos_extension-deps">deps</a>, <a href="#watchos_extension-entitlements">entitlements</a>, <a href="#watchos_extension-entitlements_validation">entitlements_validation</a>, <a href="#watchos_extension-executable_name">executable_name</a>,
-                  <a href="#watchos_extension-exported_symbols_lists">exported_symbols_lists</a>, <a href="#watchos_extension-extensions">extensions</a>, <a href="#watchos_extension-infoplists">infoplists</a>, <a href="#watchos_extension-ipa_post_processor">ipa_post_processor</a>, <a href="#watchos_extension-linkopts">linkopts</a>,
-                  <a href="#watchos_extension-minimum_deployment_os_version">minimum_deployment_os_version</a>, <a href="#watchos_extension-minimum_os_version">minimum_os_version</a>, <a href="#watchos_extension-platform_type">platform_type</a>,
+watchos_extension(<a href="#watchos_extension-name">name</a>, <a href="#watchos_extension-additional_linker_inputs">additional_linker_inputs</a>, <a href="#watchos_extension-application_extension">application_extension</a>, <a href="#watchos_extension-bundle_id">bundle_id</a>, <a href="#watchos_extension-bundle_name">bundle_name</a>,
+                  <a href="#watchos_extension-codesign_inputs">codesign_inputs</a>, <a href="#watchos_extension-codesignopts">codesignopts</a>, <a href="#watchos_extension-deps">deps</a>, <a href="#watchos_extension-entitlements">entitlements</a>, <a href="#watchos_extension-entitlements_validation">entitlements_validation</a>,
+                  <a href="#watchos_extension-executable_name">executable_name</a>, <a href="#watchos_extension-exported_symbols_lists">exported_symbols_lists</a>, <a href="#watchos_extension-extensions">extensions</a>, <a href="#watchos_extension-infoplists">infoplists</a>, <a href="#watchos_extension-ipa_post_processor">ipa_post_processor</a>,
+                  <a href="#watchos_extension-linkopts">linkopts</a>, <a href="#watchos_extension-minimum_deployment_os_version">minimum_deployment_os_version</a>, <a href="#watchos_extension-minimum_os_version">minimum_os_version</a>, <a href="#watchos_extension-platform_type">platform_type</a>,
                   <a href="#watchos_extension-provisioning_profile">provisioning_profile</a>, <a href="#watchos_extension-resources">resources</a>, <a href="#watchos_extension-stamp">stamp</a>, <a href="#watchos_extension-strings">strings</a>, <a href="#watchos_extension-version">version</a>)
 </pre>
 
@@ -144,6 +144,7 @@ so these bundling rules do not support that version of the platform.
 | :------------- | :------------- | :------------- | :------------- | :------------- |
 | <a id="watchos_extension-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
 | <a id="watchos_extension-additional_linker_inputs"></a>additional_linker_inputs |  A list of input files to be passed to the linker.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional | [] |
+| <a id="watchos_extension-application_extension"></a>application_extension |  If <code>True</code>, this extension is an App Extension instead of a WatchKit Extension. It links the extension with the application extension point (<code>_NSExtensionMain</code>) instead of the WatchKit extension point (<code>_WKExtensionMain</code>), and has the <code>app_extension</code> <code>product_type</code> instead of <code>watch2_extension</code>.   | Boolean | optional | False |
 | <a id="watchos_extension-bundle_id"></a>bundle_id |  The bundle ID (reverse-DNS path followed by app name) for this target.   | String | required |  |
 | <a id="watchos_extension-bundle_name"></a>bundle_name |  The desired name of the bundle (without the extension). If this attribute is not set, then the name of the target will be used instead.   | String | optional | "" |
 | <a id="watchos_extension-codesign_inputs"></a>codesign_inputs |  A list of dependencies targets that provide inputs that will be used by <code>codesign</code> (referenced with <code>codesignopts</code>).   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional | [] |
@@ -213,7 +214,7 @@ Builds and bundles a watchOS Static Framework.
 ## watchos_ui_test
 
 <pre>
-watchos_ui_test(<a href="#watchos_ui_test-name">name</a>, <a href="#watchos_ui_test-data">data</a>, <a href="#watchos_ui_test-deps">deps</a>, <a href="#watchos_ui_test-env">env</a>, <a href="#watchos_ui_test-platform_type">platform_type</a>, <a href="#watchos_ui_test-runner">runner</a>, <a href="#watchos_ui_test-test_host">test_host</a>)
+watchos_ui_test(<a href="#watchos_ui_test-name">name</a>, <a href="#watchos_ui_test-data">data</a>, <a href="#watchos_ui_test-deps">deps</a>, <a href="#watchos_ui_test-env">env</a>, <a href="#watchos_ui_test-platform_type">platform_type</a>, <a href="#watchos_ui_test-runner">runner</a>, <a href="#watchos_ui_test-test_filter">test_filter</a>, <a href="#watchos_ui_test-test_host">test_host</a>)
 </pre>
 
 watchOS UI Test rule.
@@ -229,6 +230,7 @@ watchOS UI Test rule.
 | <a id="watchos_ui_test-env"></a>env |  Dictionary of environment variables that should be set during the test execution.   | <a href="https://bazel.build/rules/lib/dict">Dictionary: String -> String</a> | optional | {} |
 | <a id="watchos_ui_test-platform_type"></a>platform_type |  -   | String | optional | "watchos" |
 | <a id="watchos_ui_test-runner"></a>runner |  The runner target that will provide the logic on how to run the tests. Needs to provide the AppleTestRunnerInfo provider.   | <a href="https://bazel.build/concepts/labels">Label</a> | required |  |
+| <a id="watchos_ui_test-test_filter"></a>test_filter |  Test filter string that will be passed into the test runner to select which tests will run.   | String | optional | "" |
 | <a id="watchos_ui_test-test_host"></a>test_host |  -   | <a href="https://bazel.build/concepts/labels">Label</a> | optional | None |
 
 
@@ -237,7 +239,7 @@ watchOS UI Test rule.
 ## watchos_unit_test
 
 <pre>
-watchos_unit_test(<a href="#watchos_unit_test-name">name</a>, <a href="#watchos_unit_test-data">data</a>, <a href="#watchos_unit_test-deps">deps</a>, <a href="#watchos_unit_test-env">env</a>, <a href="#watchos_unit_test-platform_type">platform_type</a>, <a href="#watchos_unit_test-runner">runner</a>, <a href="#watchos_unit_test-test_host">test_host</a>)
+watchos_unit_test(<a href="#watchos_unit_test-name">name</a>, <a href="#watchos_unit_test-data">data</a>, <a href="#watchos_unit_test-deps">deps</a>, <a href="#watchos_unit_test-env">env</a>, <a href="#watchos_unit_test-platform_type">platform_type</a>, <a href="#watchos_unit_test-runner">runner</a>, <a href="#watchos_unit_test-test_filter">test_filter</a>, <a href="#watchos_unit_test-test_host">test_host</a>)
 </pre>
 
 watchOS Unit Test rule.
@@ -253,6 +255,7 @@ watchOS Unit Test rule.
 | <a id="watchos_unit_test-env"></a>env |  Dictionary of environment variables that should be set during the test execution.   | <a href="https://bazel.build/rules/lib/dict">Dictionary: String -> String</a> | optional | {} |
 | <a id="watchos_unit_test-platform_type"></a>platform_type |  -   | String | optional | "watchos" |
 | <a id="watchos_unit_test-runner"></a>runner |  The runner target that will provide the logic on how to run the tests. Needs to provide the AppleTestRunnerInfo provider.   | <a href="https://bazel.build/concepts/labels">Label</a> | required |  |
+| <a id="watchos_unit_test-test_filter"></a>test_filter |  Test filter string that will be passed into the test runner to select which tests will run.   | String | optional | "" |
 | <a id="watchos_unit_test-test_host"></a>test_host |  -   | <a href="https://bazel.build/concepts/labels">Label</a> | optional | None |
 
 

@@ -104,6 +104,7 @@ is the recommended process:
   GitHub](https://github.com/bazelbuild/rules_apple/compare/0.21.1...HEAD),
   and collect the most notable user facing commits for the release
   notes.
+- Set the new version number in `MODULE.bazel`
 - Starting with `apple_support` create a new release with this template
   for the notes:
 
@@ -142,9 +143,6 @@ SHA-256 digest: `TBD`
 
 ### Notes
 
-- The rules aren't currently following true semantic versioning, but in
-  general the minor version should be bumped for most changes, and the
-  patch only for very small releases.
 - It's highly recommended that rules maintainers track more closely with
   the HEAD of the rules repos than with the releases.
 - In general before releasing the HEAD of the rules repos should be

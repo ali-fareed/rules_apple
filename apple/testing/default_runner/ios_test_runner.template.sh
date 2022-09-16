@@ -60,14 +60,14 @@ if [[ "$TEST_BUNDLE_PATH" == *.xctest ]]; then
   # TODO(kaipi): Improve xctestrunner to account for Bazel permissions.
   cp -RL "$TEST_BUNDLE_PATH" "$TMP_DIR"
   chmod -R 777 "${TMP_DIR}/$(basename "$TEST_BUNDLE_PATH")"
-  runner_flags+=("--test_bundle_path=${TEST_BUNDLE_PATH}")
 else
   TEST_BUNDLE_NAME=$(basename_without_extension "${TEST_BUNDLE_PATH}")
   TEST_BUNDLE_TMP_DIR="${TMP_DIR}/${TEST_BUNDLE_NAME}"
   unzip -qq -d "${TEST_BUNDLE_TMP_DIR}" "${TEST_BUNDLE_PATH}"
-  runner_flags+=("--test_bundle_path=${TEST_BUNDLE_TMP_DIR}/${TEST_BUNDLE_NAME}.xctest")
+  TEST_BUNDLE_PATH="${TEST_BUNDLE_TMP_DIR}/${TEST_BUNDLE_NAME}.xctest"
 fi
 
+runner_flags+=("--test_bundle_path=${TEST_BUNDLE_PATH}")
 
 TEST_HOST_PATH="%(test_host_path)s"
 
@@ -111,6 +111,19 @@ else
   TEST_ENV="TEST_SRCDIR=$TEST_SRCDIR"
 fi
 
+sanitizer_dyld_env=""
+readonly sanitizer_root="${TEST_BUNDLE_PATH}/Frameworks"
+for sanitizer in "$sanitizer_root"/libclang_rt.*.dylib; do
+  if [[ -n "$sanitizer_dyld_env" ]]; then
+    sanitizer_dyld_env="$sanitizer_dyld_env:"
+  fi
+  sanitizer_dyld_env="${sanitizer_dyld_env}${sanitizer}"
+done
+
+if [[ -n "$sanitizer_dyld_env" ]]; then
+  TEST_ENV="$TEST_ENV,DYLD_INSERT_LIBRARIES=$sanitizer_dyld_env"
+fi
+
 readonly profraw="$TMP_DIR/coverage.profraw"
 if [[ "${COVERAGE:-}" -eq 1 ]]; then
   readonly profile_env="LLVM_PROFILE_FILE=$profraw"
@@ -133,17 +146,26 @@ if [[ -n "${command_line_args}" ]]; then
   LAUNCH_OPTIONS_JSON_STR+="\"args\":[\"$command_line_args\"]"
 fi
 
+TEST_FILTER="%(test_filter)s"
+
 # Use the TESTBRIDGE_TEST_ONLY environment variable set by Bazel's --test_filter
 # flag to set tests_to_run value in ios_test_runner's launch_options.
 # Any test prefixed with '-' will be passed to "skip_tests". Otherwise the tests
 # is passed to "tests_to_run"
-if [[ -n "$TESTBRIDGE_TEST_ONLY" ]]; then
+if [[ -n "$TESTBRIDGE_TEST_ONLY" || -n "$TEST_FILTER" ]]; then
   if [[ -n "${LAUNCH_OPTIONS_JSON_STR}" ]]; then
     LAUNCH_OPTIONS_JSON_STR+=","
   fi
 
   IFS=","
-  ALL_TESTS=("$TESTBRIDGE_TEST_ONLY")
+  if [[ -n "$TESTBRIDGE_TEST_ONLY" && -n "$TEST_FILTER" ]]; then
+    ALL_TESTS=("$TESTBRIDGE_TEST_ONLY,$TEST_FILTER")
+  elif [[ -n "$TESTBRIDGE_TEST_ONLY" ]]; then
+    ALL_TESTS=("$TESTBRIDGE_TEST_ONLY")
+  else
+    ALL_TESTS=("$TEST_FILTER")
+  fi
+  
   for TEST in $ALL_TESTS; do
     if [[ $TEST == -* ]]; then
       if [[ -n "$SKIP_TESTS" ]]; then
@@ -236,7 +258,7 @@ xcrun llvm-profdata merge "$profraw" --output "$profdata"
 lcov_args=(
   -instr-profile "$profdata"
   -ignore-filename-regex='.*external/.+'
-  -path-equivalence="$ROOT",.
+  -path-equivalence="$ROOT,."
 )
 has_binary=false
 IFS=";"
@@ -281,7 +303,7 @@ if [[ -n "${COVERAGE_PRODUCE_JSON:-}" ]]; then
     -format text \
     "${lcov_args[@]}" \
     @"$COVERAGE_MANIFEST" \
-    > "$TEST_UNDECLARED_OUTPUTS_DIR/coverage.json"
+    > "$TEST_UNDECLARED_OUTPUTS_DIR/coverage.json" \
     2> "$error_file" \
     || llvm_cov_json_export_status=$?
   if [[ -s "$error_file" || "$llvm_cov_json_export_status" -ne 0 ]]; then
