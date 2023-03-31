@@ -18,14 +18,14 @@ import io
 import signal
 import unittest
 
-from build_bazel_rules_apple.tools.wrapper_common import execute
+from tools.wrapper_common import execute
 
 _INVALID_UTF8 = b'\xa0\xa1'
 
 def _cmd_filter(cmd_result, stdout, stderr):
   # Concat the input to a native string literal, to make sure
   # it doesn't trigger a unicode encode/decode error
-  return stdout + ' filtered', stderr + ' filtered'
+  return cmd_result, stdout + ' filtered', stderr + ' filtered'
 
 
 class ExecuteTest(unittest.TestCase):
@@ -55,6 +55,13 @@ class ExecuteTest(unittest.TestCase):
     result, stdout, stderr = execute.execute_and_filter_output(
         args, timeout=1, raise_on_failure=False)
     self.assertEqual(-signal.SIGKILL, result)
+
+  def test_execute_inputstr(self):
+    args = ['cat', '-']
+    result, stdout, stderr = execute.execute_and_filter_output(
+        args, inputstr=b'foo', raise_on_failure=False)
+    self.assertEqual(0, result)
+    self.assertEqual('foo', stdout)
 
   @contextlib.contextmanager
   def _mock_streams(self):

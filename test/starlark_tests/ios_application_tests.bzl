@@ -15,6 +15,10 @@
 """ios_application Starlark tests."""
 
 load(
+    ":common.bzl",
+    "common",
+)
+load(
     ":rules/apple_verification_test.bzl",
     "apple_verification_test",
 )
@@ -194,6 +198,21 @@ def ios_application_test_suite(name):
         ],
         contains = ["$BUNDLE_ROOT/Frameworks/libswiftCore.dylib"],
         not_contains = ["$BUNDLE_ROOT/Frameworks/iOSStaticFramework.framework"],
+        tags = [name],
+    )
+
+    # Verify ios_application with imported static framework that has data attribute
+    # bundles the framework's own .bundle/ and its data resources in the final binary.
+    archive_contents_test(
+        name = "{}_swift_with_imported_static_fmwk_with_bundle_and_data".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:swift_app_with_imported_static_fmwk_with_data",
+        contains = [
+            "$BUNDLE_ROOT/sample.png",
+            "$BUNDLE_ROOT/it.lproj/view_ios.nib",
+            "$BUNDLE_ROOT/fr.lproj/view_ios.nib",
+            "$BUNDLE_ROOT/iOSStaticFramework.bundle/",
+        ],
         tags = [name],
     )
 
@@ -396,7 +415,7 @@ def ios_application_test_suite(name):
             "DTSDKName": "iphone*",
             "DTXcode": "*",
             "DTXcodeBuild": "*",
-            "MinimumOSVersion": "8.0",
+            "MinimumOSVersion": common.min_os_ios.baseline,
             "UIDeviceFamily:0": "1",
         },
         tags = [name],
@@ -473,7 +492,7 @@ def ios_application_test_suite(name):
         build_type = "simulator",
         target_under_test = "//test/starlark_tests/targets_under_test/ios:app_with_imported_dynamic_fmwk_with_bitcode",
         binary_test_file = "$BUNDLE_ROOT/Frameworks/iOSDynamicFrameworkWithBitcode.framework/iOSDynamicFrameworkWithBitcode",
-        macho_load_commands_not_contain = ["__LLVM"],
+        macho_load_commands_not_contain = ["segname __LLVM"],
         tags = [name],
     )
 
@@ -484,7 +503,7 @@ def ios_application_test_suite(name):
         build_type = "simulator",
         target_under_test = "//test/starlark_tests/targets_under_test/ios:app_with_swift_dep",
         binary_test_file = "$BUNDLE_ROOT/Frameworks/libswiftCore.dylib",
-        macho_load_commands_not_contain = ["__LLVM"],
+        macho_load_commands_not_contain = ["segname __LLVM"],
         tags = [name],
     )
 

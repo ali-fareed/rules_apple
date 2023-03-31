@@ -330,6 +330,7 @@ def _macos_application_impl(ctx):
         ),
         apple_common.new_executable_binary_provider(
             binary = binary_artifact,
+            cc_info = link_result.cc_info,
             objc = link_result.objc,
         ),
         # TODO(b/228856372): Remove when downstream users are migrated off this provider.
@@ -596,8 +597,9 @@ def _macos_extension_impl(ctx):
             bundle_extension = bundle_extension,
             bundle_id = bundle_id,
             bundle_name = bundle_name,
-            executable_name = executable_name,
             entitlements = entitlements.bundle,
+            executable_name = executable_name,
+            extension_safe = True,
             label_name = label.name,
             platform_prerequisites = platform_prerequisites,
             predeclared_outputs = predeclared_outputs,
@@ -1631,6 +1633,7 @@ def _macos_command_line_application_impl(ctx):
         ),
         apple_common.new_executable_binary_provider(
             binary = output_file,
+            cc_info = link_result.cc_info,
             objc = link_result.objc,
         ),
         # TODO(b/228856372): Remove when downstream users are migrated off this provider.

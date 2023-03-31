@@ -34,10 +34,10 @@ def execute_and_filter_output(cmd_args,
     cmd_args: A list of strings beginning with the command to execute followed
       by its arguments.
     filtering: Optionally specify a filter for stdout/stderr. It must be
-        callable and have the following signature:  myFilter(tool_exit_status,
-          stdout_string, stderr_string) -> (stdout_string, stderr_string)  The
-          filter can then use the tool's exit status to process the output as
-          they wish, returning what ever should be used.
+      callable and have the following signature:  myFilter(tool_exit_status,
+      stdout_string, stderr_string) -> (tool_exit_status, stdout_string,
+      stderr_string) The filter can then use the tool's exit status to process
+      the output as they wish, returning what ever should be used.
     trim_paths: Optionally specify whether or not to trim the current working
       directory from any paths in the output. Based on output after filtering,
       if a filter has been specified.
@@ -67,10 +67,7 @@ def execute_and_filter_output(cmd_args,
       stderr=subprocess.PIPE,
       env=env)
   try:
-      stdout, stderr = proc.communicate(
-        input=inputstr,
-        timeout=timeout,
-      )
+    stdout, stderr = proc.communicate(input=inputstr, timeout=timeout)
   except subprocess.TimeoutExpired:
       proc.kill()
       stdout, stderr = proc.communicate()
@@ -91,7 +88,7 @@ def execute_and_filter_output(cmd_args,
   if (stdout or stderr) and filtering:
     if not callable(filtering):
       raise TypeError("'filtering' must be callable.")
-    stdout, stderr = filtering(cmd_result, stdout, stderr)
+    cmd_result, stdout, stderr = filtering(cmd_result, stdout, stderr)
 
   if trim_paths:
     stdout = _trim_paths(stdout)
@@ -125,15 +122,18 @@ def _trim_paths(stdout):
   """Trim the current working directory from any paths in "stdout"."""
   if not stdout:
     return None
-  CWD = os.getcwd() + "/"
+  current_working_dir = os.getcwd() + "/"
 
   def replace_path(m):
     path = m.group(0)
     # Some paths present in stdout may contain symlinks, which must be resolved
-    # before we can reliably compare to CWD.
+    # before we can reliably compare to current_working_dir.
     fullpath = os.path.realpath(path)
-    if fullpath.find(CWD) >= 0:
-      return fullpath.replace(CWD, "")
+    # realpath will remove terminating "/" so we must add it back.
+    if path.endswith("/") and not fullpath.endswith("/"):
+      fullpath = fullpath + "/"
+    if fullpath.find(current_working_dir) == 0:
+      return fullpath.replace(current_working_dir, "")
     else:
       return path
 

@@ -28,17 +28,19 @@ load(
     "framework_import_support",
 )
 load("@build_bazel_rules_apple//apple/internal:intermediates.bzl", "intermediates")
-load("@build_bazel_rules_apple//apple/internal:resources.bzl", "resources")
 load("@build_bazel_rules_apple//apple/internal:rule_factory.bzl", "rule_factory")
 load(
     "@build_bazel_rules_apple//apple/internal/aspects:swift_usage_aspect.bzl",
     "SwiftUsageInfo",
 )
 load("@build_bazel_rules_apple//apple:providers.bzl", "AppleFrameworkImportInfo")
+load(
+    "@build_bazel_rules_apple//apple/internal/providers:framework_import_bundle_info.bzl",
+    "AppleFrameworkImportBundleInfo",
+)
 load("@build_bazel_rules_swift//swift:swift.bzl", "SwiftToolchainInfo", "swift_clang_module_aspect", "swift_common")
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@bazel_skylib//lib:partial.bzl", "partial")
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain", "use_cpp_toolchain")
 
 # Currently, XCFramework bundles can contain Apple frameworks or libraries.
@@ -131,8 +133,6 @@ def _get_xcframework_library(
     Returns:
         A struct containing processed XCFramework files:
             binary: File referencing the XCFramework library binary.
-            framework_dirs: List of strings referencing framework (.framework) directories.
-            framework_files: List of File referencing all XCFramework framework files.
             framework_imports: List of File referencing XCFramework library files to be bundled
                 by a top-level target (ios_application) consuming the target being built.
             framework_includes: List of strings referencing parent directories for framework
@@ -184,31 +184,33 @@ def _get_xcframework_library_from_paths(*, target_triplet, xcframework):
     def _matches_library(file):
         return library_identifier in file.short_path.split("/")
 
-    files = xcframework.files_by_category
-    binaries = [f for f in files.binary_imports if _matches_library(f)]
-    framework_imports = [f for f in files.bundling_imports if _matches_library(f)]
-    headers = [f for f in files.header_imports if _matches_library(f)]
-    module_maps = [f for f in files.module_map_imports if _matches_library(f)]
+    def filter_by_library_identifier(files):
+        return [f for f in files if _matches_library(f)]
+
+    files_by_category = xcframework.files_by_category
+    binaries = filter_by_library_identifier(files_by_category.binary_imports)
+    framework_imports = filter_by_library_identifier(files_by_category.bundling_imports)
+    headers = filter_by_library_identifier(files_by_category.header_imports)
+    module_maps = filter_by_library_identifier(files_by_category.module_map_imports)
+
     swiftmodules = [
         f
-        for f in files.swift_module_imports
+        for f in files_by_category.swift_module_imports
         if _matches_library(f) and
            f.basename.startswith(target_triplet.architecture)
     ]
 
-    framework_dirs = [f.dirname for f in binaries]
-    framework_files = [f for f in xcframework.files if _matches_library(f)]
+    framework_files = filter_by_library_identifier(xcframework.files)
 
     includes = []
     framework_includes = []
     if xcframework.bundle_type == _BUNDLE_TYPE.frameworks:
-        framework_includes = [paths.dirname(f) for f in framework_dirs]
+        framework_includes = [paths.dirname(f.dirname) for f in binaries]
     else:
         includes = [h.dirname for h in headers]
 
     return struct(
         binary = binaries[0],
-        framework_dirs = framework_dirs,
         framework_files = framework_files,
         framework_imports = framework_imports,
         framework_includes = framework_includes,
@@ -252,7 +254,6 @@ def _get_xcframework_library_with_xcframework_processor(
     library_suffix = ".framework" if xcframework.bundle_type == _BUNDLE_TYPE.frameworks else ""
     library_path = xcframework.bundle_name + library_suffix
 
-    library_dir = intermediates.directory(dir_name = library_path, **intermediates_common)
     framework_imports_dir = intermediates.directory(
         dir_name = paths.join("framework_imports", library_path),
         **intermediates_common
@@ -290,7 +291,7 @@ def _get_xcframework_library_with_xcframework_processor(
     args.add_all(files_by_category.module_map_imports, before_each = "--modulemap_file")
 
     args.add("--binary", binary.path)
-    args.add("--library_dir", library_dir.path)
+    args.add("--library_dir", binary.dirname)
     args.add("--framework_imports_dir", framework_imports_dir.path)
 
     inputs = []
@@ -301,7 +302,6 @@ def _get_xcframework_library_with_xcframework_processor(
         binary,
         framework_imports_dir,
         headers_dir,
-        library_dir,
         module_map_file,
     ]
 
@@ -311,7 +311,7 @@ def _get_xcframework_library_with_xcframework_processor(
         actions = actions,
         apple_fragment = apple_fragment,
         arguments = [args],
-        executable = xcframework_processor_tool.executable,
+        executable = xcframework_processor_tool.files_to_run,
         inputs = depset(
             inputs,
             transitive = [xcframework_processor_tool.inputs],
@@ -325,20 +325,19 @@ def _get_xcframework_library_with_xcframework_processor(
     includes = []
     framework_includes = []
     if xcframework.bundle_type == _BUNDLE_TYPE.frameworks:
-        framework_includes = [library_dir.dirname]
+        framework_includes = [paths.dirname(binary.dirname)]
     else:
         includes = [headers_dir.path]
 
     return struct(
         binary = binary,
-        framework_dirs = [library_dir.path],
-        framework_files = [library_dir],
         framework_imports = [framework_imports_dir],
         framework_includes = framework_includes,
         headers = [headers_dir],
         includes = includes,
         clang_module_map = module_map_file,
         swiftmodule = [],
+        framework_files = [],
     )
 
 def _get_library_identifier(
@@ -449,7 +448,9 @@ def _apple_dynamic_xcframework_import_impl(ctx):
         framework_includes = xcframework_library.framework_includes,
         grep_includes = grep_includes,
         header_imports = xcframework_library.headers,
+        kind = "dynamic",
         label = label,
+        libraries = [] if ctx.attr.bundle_only else [xcframework_library.binary],
         swiftmodule_imports = xcframework_library.swiftmodule,
     )
     providers.append(cc_info)
@@ -457,8 +458,7 @@ def _apple_dynamic_xcframework_import_impl(ctx):
     # Create AppleDynamicFrameworkInfo provider
     apple_dynamic_framework_info = apple_common.new_dynamic_framework_provider(
         objc = objc_provider,
-        framework_dirs = depset(xcframework_library.framework_dirs),
-        framework_files = depset(xcframework_library.framework_files),
+        cc_info = cc_info,
     )
     providers.append(apple_dynamic_framework_info)
 
@@ -504,14 +504,12 @@ def _apple_static_xcframework_import_impl(ctx):
         xcode_config = xcode_config,
     )
 
-    providers = []
-    providers.append(DefaultInfo(files = depset(xcframework_imports)))
-
-    fields = {}
-    if xcframework.bundle_type == _BUNDLE_TYPE.frameworks:
-        fields = {"static_framework_file": [xcframework_library.binary]}
-    else:
-        fields = {"library": [xcframework_library.binary]}
+    providers = [
+        DefaultInfo(
+            files = depset(xcframework_imports),
+            runfiles = ctx.runfiles(files = ctx.files.data),
+        ),
+    ]
 
     # Create AppleFrameworkImportInfo provider
     apple_framework_import_info = framework_import_support.framework_import_info_with_dependencies(
@@ -546,14 +544,27 @@ def _apple_static_xcframework_import_impl(ctx):
         sdk_dylib = ctx.attr.sdk_dylibs,
         sdk_framework = ctx.attr.sdk_frameworks,
         weak_sdk_framework = ctx.attr.weak_sdk_frameworks,
-        **fields
+        static_framework_file = [xcframework_library.binary],
     )
     providers.append(objc_provider)
+
+    sdk_linkopts = []
+    for dylib in ctx.attr.sdk_dylibs:
+        if dylib.startswith("lib"):
+            dylib = dylib[3:]
+        sdk_linkopts.append("-l%s" % dylib)
+    for sdk_framework in ctx.attr.sdk_frameworks:
+        sdk_linkopts.append("-framework")
+        sdk_linkopts.append(sdk_framework)
+    for sdk_framework in ctx.attr.weak_sdk_frameworks:
+        sdk_linkopts.append("-weak_framework")
+        sdk_linkopts.append(sdk_framework)
 
     # Create CcInfo provider
     cc_info = framework_import_support.cc_info_with_dependencies(
         actions = actions,
         additional_cc_infos = additional_cc_infos,
+        alwayslink = alwayslink,
         cc_toolchain = cc_toolchain,
         ctx = ctx,
         deps = deps,
@@ -561,9 +572,11 @@ def _apple_static_xcframework_import_impl(ctx):
         features = features,
         grep_includes = grep_includes,
         header_imports = xcframework_library.headers,
+        kind = "static",
         label = label,
+        libraries = [xcframework_library.binary],
         framework_includes = xcframework_library.framework_includes,
-        linkopts = linkopts,
+        linkopts = sdk_linkopts + linkopts,
         swiftmodule_imports = [],
         includes = xcframework_library.includes + ctx.attr.includes,
     )
@@ -578,20 +591,10 @@ def _apple_static_xcframework_import_impl(ctx):
     if swift_interop_info:
         providers.append(swift_interop_info)
 
-    # Create AppleResourceInfo provider.
+    # Create AppleFrameworkImportBundleInfo provider.
     bundle_files = [x for x in xcframework_library.framework_files if ".bundle/" in x.short_path]
     if bundle_files:
-        parent_dir_param = partial.make(
-            resources.bundle_relative_parent_dir,
-            extension = "bundle",
-        )
-        resource_provider = resources.bucketize_typed(
-            bundle_files,
-            owner = str(label),
-            bucket_type = "unprocessed",
-            parent_dir_param = parent_dir_param,
-        )
-        providers.append(resource_provider)
+        providers.append(AppleFrameworkImportBundleInfo(bundle_files = bundle_files))
 
     return providers
 
@@ -637,8 +640,8 @@ List of targets that are dependencies of the target being built, which will prov
 linked into that target.
 """,
                 providers = [
-                    [apple_common.Objc, CcInfo],
-                    [apple_common.Objc, CcInfo, AppleFrameworkImportInfo],
+                    [CcInfo],
+                    [CcInfo, AppleFrameworkImportInfo],
                 ],
                 aspects = [swift_clang_module_aspect],
             ),
@@ -713,10 +716,20 @@ List of targets that are dependencies of the target being built, which will prov
 linked into that target.
 """,
                 providers = [
-                    [apple_common.Objc, CcInfo],
-                    [apple_common.Objc, CcInfo, AppleFrameworkImportInfo],
+                    [CcInfo],
+                    [CcInfo, AppleFrameworkImportInfo],
                 ],
                 aspects = [swift_clang_module_aspect],
+            ),
+            "data": attr.label_list(
+                allow_files = True,
+                doc = """
+List of files needed by this target at runtime.
+
+Files and targets named in the `data` attribute will appear in the `*.runfiles`
+area of this target, if it has one. This may include data files needed by a
+binary or library, or other programs needed by it.
+""",
             ),
             "has_swift": attr.bool(
                 doc = """

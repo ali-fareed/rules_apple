@@ -21,9 +21,16 @@ be merged into an IPA product.
 """
 
 import os
+import re
 import subprocess
 import sys
 import zipfile
+
+def normalize_clang_lip_path(path, local_developer_dir):
+  return re.sub(".*\.app/Contents/Developer",
+                local_developer_dir,
+                path,
+                count=1)
 
 
 class ClangRuntimeToolError(RuntimeError):
@@ -123,6 +130,8 @@ class ClangRuntimeTool(object):
       raise ClangRuntimeToolError(
           "Could not find any clang runtime libraries to package."
           "This is likely a configuration error")
+    if "DEVELOPER_DIR" in os.environ:
+      clang_lib_path = normalize_clang_lip_path(clang_lib_path, os.environ["DEVELOPER_DIR"])
 
     with zipfile.ZipFile(out_path, "w") as out_zip:
       for lib in clang_libraries:

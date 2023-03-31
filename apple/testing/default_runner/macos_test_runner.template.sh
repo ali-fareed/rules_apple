@@ -137,15 +137,21 @@ fi
 # Run xcodebuild with the xctestrun file just created. If the test failed, this
 # command will return non-zero, which is enough to tell bazel that the test
 # failed.
-rm -rf "$TEST_UNDECLARED_OUTPUTS_DIR/test.xcresult"
+rm -rf "$TEST_UNDECLARED_OUTPUTS_DIR/tests.xcresult"
 xcodebuild test-without-building \
     -destination "platform=macOS" \
-    -resultBundlePath "$TEST_UNDECLARED_OUTPUTS_DIR/test.xcresult" \
+    -resultBundlePath "$TEST_UNDECLARED_OUTPUTS_DIR/tests.xcresult" \
     -xctestrun "$XCTESTRUN"
 
 if [[ "${COVERAGE:-}" -ne 1 ]]; then
   # Normal tests run without coverage
   exit 0
+fi
+
+llvm_coverage_manifest="$COVERAGE_MANIFEST"
+readonly provided_llvm_coverage_manifest="%(test_llvm_coverage_manifest)s"
+if [[ -s "${provided_llvm_coverage_manifest:-}" ]]; then
+  llvm_coverage_manifest="$provided_llvm_coverage_manifest"
 fi
 
 readonly profdata="$TEST_TMP_DIR/coverage.profdata"
@@ -156,14 +162,14 @@ llvm_cov_export_status=0
 lcov_args=(
   -instr-profile "$profdata"
   -ignore-filename-regex='.*external/.+'
-  -path-equivalence="$ROOT",.
+  -path-equivalence=".,$PWD"
 )
 xcrun llvm-cov \
   export \
   -format lcov \
   "${lcov_args[@]}" \
   "$test_binary" \
-  @"$COVERAGE_MANIFEST" \
+  @"$llvm_coverage_manifest" \
   > "$COVERAGE_OUTPUT_FILE" \
   2> "$export_error_file" \
   || llvm_cov_export_status=$?
@@ -183,7 +189,7 @@ if [[ -n "${COVERAGE_PRODUCE_JSON:-}" ]]; then
     -format text \
     "${lcov_args[@]}" \
     "$test_binary" \
-    @"$COVERAGE_MANIFEST" \
+    @"$llvm_coverage_manifest" \
     > "$TEST_UNDECLARED_OUTPUTS_DIR/coverage.json"
     2> "$export_error_file" \
     || llvm_cov_json_export_status=$?

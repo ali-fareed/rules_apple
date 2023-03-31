@@ -23,10 +23,6 @@ load(
     "dicts",
 )
 load(
-    "@bazel_skylib//lib:partial.bzl",
-    "partial",
-)
-load(
     "@bazel_skylib//lib:paths.bzl",
     "paths",
 )
@@ -39,12 +35,12 @@ load(
     "AppleFrameworkImportInfo",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:cc_toolchain_info_support.bzl",
-    "cc_toolchain_info_support",
+    "@build_bazel_rules_apple//apple/internal/providers:framework_import_bundle_info.bzl",
+    "AppleFrameworkImportBundleInfo",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:resources.bzl",
-    "resources",
+    "@build_bazel_rules_apple//apple/internal:cc_toolchain_info_support.bzl",
+    "cc_toolchain_info_support",
 )
 load(
     "@build_bazel_rules_apple//apple/internal/utils:bundle_paths.bzl",
@@ -262,7 +258,9 @@ def _apple_dynamic_framework_import_impl(ctx):
         framework_includes = _framework_search_paths(framework_imports_by_category.header_imports),
         grep_includes = grep_includes,
         header_imports = framework_imports_by_category.header_imports,
+        kind = "dynamic",
         label = label,
+        libraries = [] if ctx.attr.bundle_only else framework_imports_by_category.binary_imports,
         swiftmodule_imports = framework_imports_by_category.swift_module_imports,
     )
     providers.append(cc_info)
@@ -272,6 +270,7 @@ def _apple_dynamic_framework_import_impl(ctx):
     framework_dirs_set = depset(framework_groups.keys())
     providers.append(apple_common.new_dynamic_framework_provider(
         objc = objc_provider,
+        cc_info = cc_info,
         framework_dirs = framework_dirs_set,
         framework_files = depset(framework_imports),
     ))
@@ -308,7 +307,10 @@ def _apple_static_framework_import_impl(ctx):
     # TODO(b/207475773): Remove grep-includes once it's no longer required for cc_common APIs.
     grep_includes = ctx.file._grep_includes
 
-    providers = []
+    providers = [
+        DefaultInfo(runfiles = ctx.runfiles(files = ctx.files.data)),
+    ]
+
     framework_imports_by_category = framework_import_support.classify_framework_imports(
         ctx.var,
         framework_imports,
@@ -363,11 +365,27 @@ def _apple_static_framework_import_impl(ctx):
         ),
     )
 
+    linkopts = []
+    if sdk_dylibs:
+        for dylib in ctx.attr.sdk_dylibs:
+            if dylib.startswith("lib"):
+                dylib = dylib[3:]
+            linkopts.append("-l%s" % dylib)
+    if sdk_frameworks:
+        for sdk_framework in ctx.attr.sdk_frameworks:
+            linkopts.append("-framework")
+            linkopts.append(sdk_framework)
+    if weak_sdk_frameworks:
+        for sdk_framework in ctx.attr.weak_sdk_frameworks:
+            linkopts.append("-weak_framework")
+            linkopts.append(sdk_framework)
+
     # Create CcInfo provider.
     providers.append(
         framework_import_support.cc_info_with_dependencies(
             actions = actions,
             additional_cc_infos = additional_cc_infos,
+            alwayslink = alwayslink,
             cc_toolchain = cc_toolchain,
             ctx = ctx,
             deps = deps,
@@ -378,7 +396,10 @@ def _apple_static_framework_import_impl(ctx):
             ),
             grep_includes = grep_includes,
             header_imports = framework_imports_by_category.header_imports,
+            kind = "static",
             label = label,
+            libraries = framework_imports_by_category.binary_imports,
+            linkopts = linkopts,
             swiftmodule_imports = framework_imports_by_category.swift_module_imports,
         ),
     )
@@ -394,20 +415,10 @@ def _apple_static_framework_import_impl(ctx):
     if swift_interop_info:
         providers.append(swift_interop_info)
 
-    # Create AppleResourceInfo provider.
+    # Create AppleFrameworkImportBundleInfo provider.
     bundle_files = [x for x in framework_imports if ".bundle/" in x.short_path]
     if bundle_files:
-        parent_dir_param = partial.make(
-            resources.bundle_relative_parent_dir,
-            extension = "bundle",
-        )
-        resource_provider = resources.bucketize_typed(
-            bundle_files,
-            owner = str(label),
-            bucket_type = "unprocessed",
-            parent_dir_param = parent_dir_param,
-        )
-        providers.append(resource_provider)
+        providers.append(AppleFrameworkImportBundleInfo(bundle_files = bundle_files))
 
     return providers
 
@@ -433,8 +444,8 @@ A list of targets that are dependencies of the target being built, which will be
 target.
 """,
                 providers = [
-                    [apple_common.Objc, CcInfo],
-                    [apple_common.Objc, CcInfo, AppleFrameworkImportInfo],
+                    [CcInfo],
+                    [CcInfo, AppleFrameworkImportInfo],
                 ],
             ),
             "dsym_imports": attr.label_list(
@@ -525,9 +536,19 @@ A list of targets that are dependencies of the target being built, which will pr
 linked into that target.
 """,
                 providers = [
-                    [apple_common.Objc, CcInfo],
-                    [apple_common.Objc, CcInfo, AppleFrameworkImportInfo],
+                    [CcInfo],
+                    [CcInfo, AppleFrameworkImportInfo],
                 ],
+            ),
+            "data": attr.label_list(
+                allow_files = True,
+                doc = """
+List of files needed by this target at runtime.
+
+Files and targets named in the `data` attribute will appear in the `*.runfiles`
+area of this target, if it has one. This may include data files needed by a
+binary or library, or other programs needed by it.
+""",
             ),
             "alwayslink": attr.bool(
                 default = False,

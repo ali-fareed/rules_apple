@@ -15,6 +15,14 @@
 """ios_unit_test Starlark tests."""
 
 load(
+    ":common.bzl",
+    "common",
+)
+load(
+    ":rules/analysis_failure_message_test.bzl",
+    "analysis_failure_message_test",
+)
+load(
     ":rules/apple_verification_test.bzl",
     "apple_verification_test",
 )
@@ -68,7 +76,7 @@ def ios_unit_test_test_suite(name):
             "DTSDKName": "iphone*",
             "DTXcode": "*",
             "DTXcodeBuild": "*",
-            "MinimumOSVersion": "8.0",
+            "MinimumOSVersion": common.min_os_ios.baseline,
             "UIDeviceFamily:0": "1",
         },
         target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test",
@@ -80,6 +88,22 @@ def ios_unit_test_test_suite(name):
         target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test",
         expected_direct_dsyms = ["unit_test.xctest"],
         expected_transitive_dsyms = ["unit_test.xctest", "app.app"],
+        tags = [name],
+    )
+
+    infoplist_contents_test(
+        name = "{}_test_bundle_id_override".format(name),
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test_custom_bundle_id",
+        expected_values = {
+            "CFBundleIdentifier": "my.test.bundle.id",
+        },
+        tags = [name],
+    )
+
+    analysis_failure_message_test(
+        name = "{}_test_bundle_id_same_as_test_host_error".format(name),
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test_invalid_bundle_id",
+        expected_error = "The test bundle's identifier of 'com.google.example' can't be the same as the test host's bundle identifier. Please change one of them.",
         tags = [name],
     )
 
@@ -107,7 +131,7 @@ def ios_unit_test_test_suite(name):
         name = "{}_test_target_bundles_framework_from_objc_library_runtime_deps".format(name),
         build_type = "simulator",
         contains = [
-            "$BUNDLE_ROOT/Frameworks/fmwk_8_0_minimum.framework/fmwk_8_0_minimum",
+            "$BUNDLE_ROOT/Frameworks/fmwk_min_os_baseline.framework/fmwk_min_os_baseline",
         ],
         target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test_with_fmwk_from_objc_library_runtime_deps",
         tags = [name],
@@ -147,6 +171,46 @@ def ios_unit_test_test_suite(name):
             "$BUNDLE_ROOT/empty.strings",
         ],
         target_under_test = "//test/starlark_tests/targets_under_test/ios:dedupe_test_test",
+        tags = [name],
+    )
+
+    archive_contents_test(
+        name = "{}_builds_without_test_host".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test_no_host",
+        cpus = {
+            "ios_multi_cpus": ["x86_64"],
+        },
+        binary_test_file = "$BINARY",
+        binary_test_architecture = "x86_64",
+        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "minos 14.0", "platform IOSSIMULATOR"],
+        tags = [name],
+    )
+
+    archive_contents_test(
+        name = "{}_builds_with_swift_dep".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test_with_swift_deps",
+        cpus = {
+            "ios_multi_cpus": ["x86_64"],
+        },
+        binary_test_file = "$BINARY",
+        binary_test_architecture = "x86_64",
+        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "minos 14.0", "platform IOSSIMULATOR"],
+        tags = [name],
+    )
+
+    archive_contents_test(
+        name = "{}_bundle_loader_reference_main".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:unit_test_with_bundle_loader",
+        binary_test_file = "$BUNDLE_ROOT/unit_test_with_bundle_loader",
+        binary_test_architecture = "x86_64",
+        binary_contains_symbols = ["_OBJC_CLASS_$_CommonTests"],
+        cpus = {
+            "ios_multi_cpus": ["x86_64"],
+        },
+        binary_not_contains_symbols = ["_OBJC_CLASS_$_ObjectiveCCommonClass"],
         tags = [name],
     )
 

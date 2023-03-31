@@ -15,6 +15,10 @@
 """xcframework Starlark tests."""
 
 load(
+    ":common.bzl",
+    "common",
+)
+load(
     ":rules/common_verification_tests.bzl",
     "archive_contents_test",
 )
@@ -152,29 +156,29 @@ def apple_static_xcframework_test_suite(name):
     archive_contents_test(
         name = "{}_ios_arm64_macho_load_cmd_for_simulator".format(name),
         build_type = "device",
-        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework",
+        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework_oldest_supported",
         binary_test_architecture = "arm64",
-        binary_test_file = "$BUNDLE_ROOT/ios-arm64_x86_64-simulator/ios_static_xcframework.framework/ios_static_xcframework",
-        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "platform IOSSIMULATOR"],
+        binary_test_file = "$BUNDLE_ROOT/ios-arm64_x86_64-simulator/ios_static_xcframework_oldest_supported.framework/ios_static_xcframework_oldest_supported",
+        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "minos " + common.min_os_ios.arm_sim_support, "platform IOSSIMULATOR"],
         macho_load_commands_not_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
         tags = [name],
     )
     archive_contents_test(
         name = "{}_ios_x86_64_below_12_0_macho_load_cmd_for_simulator".format(name),
         build_type = "device",
-        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework",
+        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework_oldest_supported",
         binary_test_architecture = "x86_64",
-        binary_test_file = "$BUNDLE_ROOT/ios-arm64_x86_64-simulator/ios_static_xcframework.framework/ios_static_xcframework",
-        macho_load_commands_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
+        binary_test_file = "$BUNDLE_ROOT/ios-arm64_x86_64-simulator/ios_static_xcframework_oldest_supported.framework/ios_static_xcframework_oldest_supported",
+        macho_load_commands_contain = ["cmd LC_VERSION_MIN_IPHONEOS", "version " + common.min_os_ios.oldest_supported],
         macho_load_commands_not_contain = ["cmd LC_BUILD_VERSION"],
         tags = [name],
     )
     archive_contents_test(
         name = "{}_ios_x86_64_above_12_0_macho_load_cmd_for_simulator".format(name),
         build_type = "device",
-        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework_min_os_12",
+        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework",
         binary_test_architecture = "x86_64",
-        binary_test_file = "$BUNDLE_ROOT/ios-arm64_x86_64-simulator/ios_static_xcframework_min_os_12.framework/ios_static_xcframework_min_os_12",
+        binary_test_file = "$BUNDLE_ROOT/ios-arm64_x86_64-simulator/ios_static_xcframework.framework/ios_static_xcframework",
         macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "platform IOSSIMULATOR"],
         macho_load_commands_not_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
         tags = [name],
@@ -186,18 +190,18 @@ def apple_static_xcframework_test_suite(name):
     archive_contents_test(
         name = "{}_ios_x86_64_arm64_below_12_0_macho_load_cmd_for_device".format(name),
         build_type = "device",
-        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework",
-        binary_test_file = "$BUNDLE_ROOT/ios-arm64/ios_static_xcframework.framework/ios_static_xcframework",
-        macho_load_commands_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
+        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework_oldest_supported",
+        binary_test_file = "$BUNDLE_ROOT/ios-arm64/ios_static_xcframework_oldest_supported.framework/ios_static_xcframework_oldest_supported",
+        macho_load_commands_contain = ["cmd LC_VERSION_MIN_IPHONEOS", "version " + common.min_os_ios.oldest_supported],
         macho_load_commands_not_contain = ["cmd LC_BUILD_VERSION"],
         tags = [name],
     )
     archive_contents_test(
         name = "{}_ios_x86_64_arm64_above_12_0_macho_load_cmd_for_device".format(name),
         build_type = "device",
-        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework_min_os_12",
-        binary_test_file = "$BUNDLE_ROOT/ios-arm64/ios_static_xcframework_min_os_12.framework/ios_static_xcframework_min_os_12",
-        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "platform IOS"],
+        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_static_xcframework",
+        binary_test_file = "$BUNDLE_ROOT/ios-arm64/ios_static_xcframework.framework/ios_static_xcframework",
+        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "minos " + common.min_os_ios.baseline, "platform IOS"],
         macho_load_commands_not_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
         tags = [name],
     )

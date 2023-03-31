@@ -15,6 +15,10 @@
 """xcframework Starlark tests."""
 
 load(
+    ":common.bzl",
+    "common",
+)
+load(
     ":rules/analysis_failure_message_test.bzl",
     "analysis_failure_message_test",
 )
@@ -307,10 +311,10 @@ def apple_xcframework_test_suite(name):
     archive_contents_test(
         name = "{}_ios_minimum_os_versions_test".format(name),
         build_type = "device",
-        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_dynamic_xcframework_min_ver_10",
-        plist_test_file = "$BUNDLE_ROOT/ios-x86_64-simulator/ios_dynamic_xcframework_min_ver_10.framework/Info.plist",
+        target_under_test = "//test/starlark_tests/targets_under_test/apple:ios_dynamic_xcframework",
+        plist_test_file = "$BUNDLE_ROOT/ios-x86_64-simulator/ios_dynamic_xcframework.framework/Info.plist",
         plist_test_values = {
-            "MinimumOSVersion": "10.0",
+            "MinimumOSVersion": common.min_os_ios.baseline,
         },
         tags = [name],
     )

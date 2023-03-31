@@ -385,7 +385,7 @@ def _create_xcframework_root_infoplist(
         actions = actions,
         apple_fragment = apple_fragment,
         arguments = [plisttool_control_file.path],
-        executable = resolved_plisttool.executable,
+        executable = resolved_plisttool.files_to_run,
         inputs = depset([plisttool_control_file], transitive = [resolved_plisttool.inputs]),
         input_manifests = resolved_plisttool.input_manifests,
         mnemonic = "CreateXCFrameworkRootInfoPlist",
@@ -448,7 +448,7 @@ def _create_xcframework_bundle(
 
     actions.run(
         arguments = [bundletool_control_file.path],
-        executable = resolved_bundletool.executable,
+        executable = resolved_bundletool.files_to_run,
         inputs = depset(
             direct = [bundletool_control_file, root_info_plist],
             transitive = [resolved_bundletool.inputs] + framework_archive_files,
@@ -788,6 +788,7 @@ apple_xcframework = rule(
                 default = "@build_bazel_rules_apple//apple/internal:environment_plist_ios",
             ),
             "bundle_id": attr.string(
+                mandatory = True,
                 doc = """
 The bundle ID (reverse-DNS path followed by app name) for each of the embedded frameworks. If
 present, this value will be embedded in an Info.plist within each framework bundle.

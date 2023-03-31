@@ -65,7 +65,7 @@ tvos_application(
     extensions = [":ext"],
     frameworks = [":framework"],
     infoplists = ["Info-App.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -75,7 +75,7 @@ tvos_extension(
     bundle_id = "my.bundle.id.extension",
     frameworks = [":framework"],
     infoplists = ["Info-Ext.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -86,7 +86,7 @@ tvos_framework(
     bundle_id = "my.bundle.id.framework",
     extension_safe = 1,
     infoplists = ["Info-Framework.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     deps = [":framework_lib"],
 )
 
@@ -277,7 +277,7 @@ EOF
 
 # Creates the targets for a minimal tvOS dynamic framework.
 function create_minimal_tvos_framework() {
-  create_minimal_tvos_framework_with_params True "9.0"
+  create_minimal_tvos_framework_with_params True "${MIN_OS_TVOS}"
 }
 
 # Creates the targets for a minimal tvOS application and extension that both use
@@ -300,7 +300,7 @@ tvos_application(
     extensions = [":ext"],
     frameworks = ["//framework:framework"],
     infoplists = ["Info-App.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -310,7 +310,7 @@ tvos_extension(
     bundle_id = "my.bundle.id.extension",
     frameworks = ["//framework:framework"],
     infoplists = ["Info-Ext.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -497,7 +497,7 @@ tvos_framework(
   bundle_name = "FrameworkBundleName",
   infoplists = ["Info.plist"],
   extension_safe = True,
-  minimum_os_version = "9.0",
+  minimum_os_version = "${MIN_OS_TVOS}",
   deps = [":framework_lib"],
 )
 
@@ -602,7 +602,7 @@ tvos_application(
     bundle_id = "my.bundle.id",
     frameworks = [":framework"],
     infoplists = ["Info-App.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -613,7 +613,7 @@ tvos_framework(
     bundle_id = "my.bundle.id.framework",
     infoplists = ["Info-Framework.plist"],
     linkopts = ["-application_extension"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     deps = [":framework_lib"],
 )
 
@@ -735,7 +735,7 @@ tvos_application(
     bundle_id = "my.bundle.id",
     extensions = [":ext"],
     infoplists = ["Info-App.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -745,7 +745,7 @@ tvos_extension(
     bundle_id = "my.bundle.id.extension",
     frameworks = ["//framework:framework"],
     infoplists = ["Info-Ext.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -846,7 +846,7 @@ tvos_application(
     bundle_id = "my.bundle.id",
     frameworks = ["//framework:framework"],
     infoplists = ["Info-App.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -866,7 +866,7 @@ tvos_framework(
     bundle_id = "my.bundle.id.framework",
     infoplists = ["Info-Framework.plist"],
     linkopts = ["-application_extension"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     deps = [":framework_lib"],
 )
 
@@ -958,11 +958,11 @@ EOF
 
 
 function test_resource_bundle_is_in_framework_same_min_os() {
-  verify_resource_bundle_deduping "9.0" "9.0"
+  verify_resource_bundle_deduping "${MIN_OS_TVOS}" "${MIN_OS_TVOS}"
 }
 
 function test_resource_bundle_is_in_framework_different_min_os() {
-  verify_resource_bundle_deduping "9.0" "10.0"
+  verify_resource_bundle_deduping "${MIN_OS_TVOS}" "${MIN_OS_TVOS_NPLUS1}"
 }
 
 # Tests that resource bundles that are dependencies of a framework are
@@ -987,7 +987,7 @@ tvos_application(
     bundle_id = "my.bundle.id",
     frameworks = [":framework"],
     infoplists = ["Info-App.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -998,7 +998,7 @@ tvos_framework(
     bundle_id = "my.bundle.id.framework",
     infoplists = ["Info-Framework.plist"],
     linkopts = ["-application_extension"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     deps = [":framework_lib"],
 )
 
@@ -1110,7 +1110,7 @@ tvos_application(
     bundle_id = "my.bundle.id",
     frameworks = [":outer_framework"],
     infoplists = ["Info-App.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -1120,7 +1120,7 @@ tvos_framework(
     hdrs = ["OuterFramework.h"],
     bundle_id = "my.bundle.id.framework",
     infoplists = ["Info-Framework.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     deps = [
         ":inner_framework",
         ":outer_framework_lib",
@@ -1144,7 +1144,7 @@ apple_dynamic_framework_import(
 EOF
 
   mkdir -p app/inner_framework.framework
-  cp $(rlocation build_bazel_rules_apple/test/testdata/binaries/empty_tvos_dylib_lipobin) \
+  cp $(rlocation build_bazel_rules_apple/test/testdata/binaries/empty_tvos_dylib_lipobin.dylib) \
       app/inner_framework.framework/inner_framework
 
   cat > app/inner_framework.framework/Info.plist <<EOF
@@ -1239,29 +1239,6 @@ EOF
       "Payload/app.app/Frameworks/outer_framework.framework/Frameworks/inner_framework.framework/resource.txt"
 }
 
-# Tests that a warning is shown when an extension depends on a framework which
-# is not marked extension_safe.
-# TODO(cparsons): This should eventually cause failure instead of merely a
-# warning.
-function test_extension_depends_on_unsafe_framework() {
-  create_minimal_tvos_framework_with_params False "9.0"
-  create_minimal_tvos_application_and_extension
-  do_build tvos //app:app || fail "Should build"
-
-  expect_log "not marked extension-safe"
-
-  # Verify the application still builds, however.
-  assert_zip_contains "test-bin/app/app.ipa" \
-      "Payload/app.app/Frameworks/framework.framework/framework"
-  assert_zip_contains "test-bin/app/app.ipa" \
-      "Payload/app.app/Frameworks/framework.framework/Info.plist"
-  assert_zip_contains "test-bin/app/app.ipa" \
-      "Payload/app.app/Frameworks/framework.framework/Headers/Framework.h"
-
-  assert_zip_not_contains "test-bin/app/app.ipa" \
-      "Payload/app.app/PlugIns/extension.appex/Frameworks/"
-}
-
 # Tests that an App->Framework->Framework dependency is handled properly. (That
 # a framework that is not directly depended on by the app is still pulled into
 # the app, and symbols end up in the correct binaries.)
@@ -1287,7 +1264,7 @@ tvos_application(
     bundle_id = "my.bundle.id",
     frameworks = [":framework"],
     infoplists = ["Info-App.plist", "Info-Common.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -1298,7 +1275,7 @@ tvos_framework(
     bundle_id = "my.framework.id",
     frameworks = [":depframework"],
     infoplists = ["Framework-Info.plist", "Info-Common.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     deps = [":framework_lib"],
 )
 
@@ -1307,7 +1284,7 @@ tvos_framework(
     hdrs = ["DepFramework.h"],
     bundle_id = "my.depframework.id",
     infoplists = ["Framework-Info.plist", "Info-Common.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     deps = [":dep_framework_lib"],
 )
 
@@ -1493,7 +1470,7 @@ EOF
 # Verifies that, when an extension depends on a framework with different
 # minimum_os, symbol subtraction still occurs.
 function test_differing_minimum_os() {
-  create_minimal_tvos_framework_with_params True "9.0"
+  create_minimal_tvos_framework_with_params True "${MIN_OS_TVOS}"
 
 cat > app/BUILD <<EOF
 load("@build_bazel_rules_apple//apple:tvos.bzl",
@@ -1513,7 +1490,7 @@ tvos_application(
     extensions = [":ext"],
     frameworks = ["//framework:framework"],
     infoplists = ["Info-App.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_TVOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )
@@ -1523,7 +1500,7 @@ tvos_extension(
     bundle_id = "my.bundle.id.extension",
     frameworks = ["//framework:framework"],
     infoplists = ["Info-Ext.plist"],
-    minimum_os_version = "10.0",
+    minimum_os_version = "${MIN_OS_TVOS_NPLUS1}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_tvos.mobileprovision",
     deps = [":lib"],
 )

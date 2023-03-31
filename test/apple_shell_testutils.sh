@@ -17,6 +17,20 @@
 # Common utilities that are useful across a variety of Apple shell integration
 # tests.
 
+# The arm64e architecture was introduced for iOS and tvOS in version 12.
+ARM64E_MIN_OS_IOS="12.0"
+ARM64E_MIN_OS_TVOS="12.0"
+
+export MIN_OS_IOS="$ARM64E_MIN_OS_IOS"
+export MIN_OS_IOS_NPLUS1="13.0"
+
+export MIN_OS_TVOS="$ARM64E_MIN_OS_TVOS"
+export MIN_OS_TVOS_NPLUS1="13.0"
+
+export MIN_OS_MACOS="10.13"
+export MIN_OS_MACOS_NPLUS1="10.14"
+
+export MIN_OS_WATCHOS="4.0"
 
 # Usage: assert_exists <path>
 #
@@ -440,15 +454,14 @@ function do_action() {
       "--announce_rc"
       "--symlink_prefix=test-"
       "--verbose_failures"
-      # See the comment in rules_swift/tools/worker/BUILD for why this
-      # workaround is necessary.
-      "--define=RULES_SWIFT_BUILD_DUMMY_WORKER=1"
       # Used so that if there's a single configuration transition, its output
       # directory gets mapped into the bazel-bin symlink.
       "--use_top_level_targets_for_symlinks"
-      # Explicitly pass these flags to ensure the external testing infrastructure
-      # matches the internal one.
-      "--incompatible_merge_genfiles_directory"
+      # TODO: Fix the tests that fail with this flag and remove this.
+      "--incompatible_unambiguous_label_stringification=false"
+      "--apple_crosstool_top=@local_config_apple_cc//:toolchain"
+      "--crosstool_top=@local_config_apple_cc//:toolchain"
+      "--host_crosstool_top=@local_config_apple_cc//:toolchain"
   )
 
   local bazel_version="$(bazel --version)"

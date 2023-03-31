@@ -419,6 +419,7 @@ def _codesigning_command(
         rule_descriptor = rule_descriptor,
     )
     paths_to_sign = []
+    is_device = platform_prerequisites.platform.is_device
 
     # The command returned by this function is executed as part of a bundling shell script.
     # Each directory to be signed must be prefixed by $WORK_DIR, which is the variable in that
@@ -426,7 +427,7 @@ def _codesigning_command(
     should_sign_sim_frameworks = _should_sign_simulator_frameworks(
         features = platform_prerequisites.features,
     )
-    if frameworks_path and should_sign_sim_frameworks:
+    if (frameworks_path and should_sign_sim_frameworks) or is_device:
         framework_root = paths.join("$WORK_DIR", frameworks_path) + "/"
         full_signed_frameworks = []
 
@@ -446,7 +447,7 @@ def _codesigning_command(
         features = platform_prerequisites.features,
         rule_descriptor = rule_descriptor,
     )
-    if platform_prerequisites.platform.is_device or should_sign_sim_bundles:
+    if is_device or should_sign_sim_bundles:
         path_to_sign = paths.join("$WORK_DIR", bundle_path)
         paths_to_sign.append(
             _path_to_sign(path = path_to_sign),
@@ -543,7 +544,7 @@ def _generate_codesigning_dossier_action(
         actions = actions,
         apple_fragment = platform_prerequisites.apple_fragment,
         arguments = args,
-        executable = resolved_codesigning_dossier_tool.executable,
+        executable = resolved_codesigning_dossier_tool.files_to_run,
         execution_requirements = execution_requirements,
         inputs = depset(input_files, transitive = [resolved_codesigning_dossier_tool.inputs]),
         input_manifests = resolved_codesigning_dossier_tool.input_manifests,

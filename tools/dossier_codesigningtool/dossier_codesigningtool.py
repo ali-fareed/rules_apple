@@ -29,7 +29,7 @@ import sys
 import tempfile
 import uuid
 
-from build_bazel_rules_apple.tools.wrapper_common import execute
+from tools.wrapper_common import execute
 
 
 class DossierDirectory(object):
@@ -525,8 +525,8 @@ def _filter_codesign_output(codesign_output):
 
 def _filter_codesign_tool_output(exit_status, codesign_stdout, codesign_stderr):
   """Filters the output from executing the codesign tool."""
-  return _filter_codesign_output(codesign_stdout), _filter_codesign_output(
-      codesign_stderr)
+  return (exit_status, _filter_codesign_output(codesign_stdout),
+          _filter_codesign_output(codesign_stderr))
 
 
 def _invoke_codesign(codesign_path, identity, entitlements, force_signing,

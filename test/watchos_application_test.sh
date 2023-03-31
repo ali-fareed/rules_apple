@@ -52,7 +52,7 @@ ios_application(
     bundle_id = "my.bundle.id",
     families = ["iphone"],
     infoplists = ["Info-PhoneApp.plist"],
-    minimum_os_version = "9.0",
+    minimum_os_version = "${MIN_OS_IOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     watch_application = ":watch_app",
     deps = [":lib"],
@@ -128,9 +128,8 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
-    deps = [":watch_lib"],
 )
 
 watchos_extension(
@@ -138,7 +137,7 @@ watchos_extension(
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -265,7 +264,7 @@ watchos_application(
     bundle_id = "my.bundle.id.watch-app",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "bogus.mobileprovision",
 )
 
@@ -273,7 +272,7 @@ watchos_extension(
     name = "watch_ext",
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -306,7 +305,7 @@ watchos_application(
     bundle_id = "my.bundle.id.watch-app",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -314,7 +313,7 @@ watchos_extension(
     name = "watch_ext",
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "bogus.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -342,7 +341,7 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -351,7 +350,7 @@ watchos_extension(
     bundle_id = "my.bundle2.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -390,7 +389,7 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -399,7 +398,7 @@ watchos_extension(
     bundle_id = "my.bundle2.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -421,7 +420,7 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -430,7 +429,7 @@ watchos_extension(
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -481,7 +480,7 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -490,7 +489,7 @@ watchos_extension(
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -528,7 +527,7 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -537,7 +536,7 @@ watchos_extension(
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -588,7 +587,7 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -597,7 +596,7 @@ watchos_extension(
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -635,7 +634,7 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -644,7 +643,7 @@ watchos_extension(
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )
@@ -678,7 +677,7 @@ watchos_application(
     entitlements = "entitlements.entitlements",
     extension = ":watch_ext",
     infoplists = ["Info-WatchApp.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
 )
 
@@ -687,7 +686,7 @@ watchos_extension(
     bundle_id = "my.bundle.id.watch-app.watch-ext",
     entitlements = "entitlements.entitlements",
     infoplists = ["Info-WatchExt.plist"],
-    minimum_os_version = "2.0",
+    minimum_os_version = "${MIN_OS_WATCHOS}",
     provisioning_profile = "@build_bazel_rules_apple//test/testdata/provisioning:integration_testing_ios.mobileprovision",
     deps = [":watch_lib"],
 )

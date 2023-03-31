@@ -48,6 +48,18 @@ not having to update it every time a new device or certificate is added.
 
 ## Example
 
+### In your `MODULE.bazel` file:
+
+You only need this in the case you want to setup fallback profiles, otherwise
+it can be ommitted when using bzlmod.
+
+```bzl
+provisioning_profile_repository = use_extension("@build_bazel_rules_apple//apple:apple.bzl", "provisioning_profile_repository_extension")
+provisioning_profile_repository.setup(
+    fallback_profiles = "//path/to/some:filegroup", # Profiles to use if one isn't found locally
+)
+```
+
 ### In your `WORKSPACE` file:
 
 ```starlark
@@ -79,6 +91,39 @@ ios_application(
 """,
 )
 
+def _provisioning_profile_repository_extension(module_ctx):
+    root_modules = [m for m in module_ctx.modules if m.is_root and m.tags.setup]
+    if len(root_modules) > 1:
+        fail("Expected at most one root module, found {}".format(", ".join([x.name for x in root_modules])))
+
+    if root_modules:
+        root_module = root_modules[0]
+    else:
+        root_module = module_ctx.modules[0]
+
+    kwargs = {}
+    if root_module.tags.setup:
+        kwargs["fallback_profiles"] = root_module.tags.setup[0].fallback_profiles
+
+    provisioning_profile_repository(
+        name = "local_provisioning_profiles",
+        **kwargs
+    )
+
+provisioning_profile_repository_extension = module_extension(
+    implementation = _provisioning_profile_repository_extension,
+    tag_classes = {
+        "setup": tag_class(attrs = {
+            "fallback_profiles": attr.label(
+                allow_files = [".mobileprovision"],
+            ),
+        }),
+    },
+    doc = """
+See [`provisioning_profile_repository`](#provisioning_profile_repository) for more information and examples.
+""",
+)
+
 def _local_provisioning_profile(ctx):
     if not ctx.files._local_srcs and not ctx.attr._fallback_srcs:
         ctx.fail("Either local or fallback provisioning profiles must exist")
@@ -104,6 +149,7 @@ def _local_provisioning_profile(ctx):
         arguments = [args],
         inputs = ctx.files._local_srcs + ctx.files._fallback_srcs,
         outputs = [selected_profile],
+        mnemonic = "FindProvisioningProfile",
         execution_requirements = {"no-sandbox": "1", "no-remote-exec": "1"},
         progress_message = "Finding provisioning profile %{label}",
     )

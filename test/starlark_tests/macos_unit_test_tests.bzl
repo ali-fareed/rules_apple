@@ -15,6 +15,14 @@
 """macos_unit_test Starlark tests."""
 
 load(
+    ":common.bzl",
+    "common",
+)
+load(
+    ":rules/analysis_failure_message_test.bzl",
+    "analysis_failure_message_test",
+)
+load(
     ":rules/apple_verification_test.bzl",
     "apple_verification_test",
 )
@@ -25,6 +33,14 @@ load(
 load(
     ":rules/dsyms_test.bzl",
     "dsyms_test",
+)
+load(
+    ":rules/infoplist_contents_test.bzl",
+    "infoplist_contents_test",
+)
+load(
+    ":rules/analysis_runfiles_test.bzl",
+    "analysis_runfiles_test",
 )
 
 def macos_unit_test_test_suite(name):
@@ -65,7 +81,7 @@ def macos_unit_test_test_suite(name):
             "DTSDKName": "macosx*",
             "DTXcode": "*",
             "DTXcodeBuild": "*",
-            "LSMinimumSystemVersion": "10.10",
+            "LSMinimumSystemVersion": common.min_os_macos.baseline,
         },
         target_under_test = "//test/starlark_tests/targets_under_test/macos:unit_test",
         tags = [name],
@@ -77,6 +93,45 @@ def macos_unit_test_test_suite(name):
         expected_direct_dsyms = ["unit_test.xctest"],
         expected_transitive_dsyms = ["unit_test.xctest", "app.app"],
         tags = [name],
+    )
+
+    infoplist_contents_test(
+        name = "{}_test_bundle_id_override".format(name),
+        target_under_test = "//test/starlark_tests/targets_under_test/macos:unit_test_custom_bundle_id",
+        expected_values = {
+            "CFBundleIdentifier": "my.test.bundle.id",
+        },
+        tags = [name],
+    )
+
+    analysis_failure_message_test(
+        name = "{}_test_bundle_id_same_as_test_host_error".format(name),
+        target_under_test = "//test/starlark_tests/targets_under_test/macos:unit_test_invalid_bundle_id",
+        expected_error = "The test bundle's identifier of 'com.google.example' can't be the same as the test host's bundle identifier. Please change one of them.",
+        tags = [name],
+    )
+
+    archive_contents_test(
+        name = "{}_builds_without_test_host".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/macos:unit_test_no_host",
+        cpus = {
+            "macos_cpus": ["x86_64"],
+        },
+        binary_test_file = "$BINARY",
+        binary_test_architecture = "x86_64",
+        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "minos 11.0", "platform MACOS"],
+        tags = [name],
+    )
+
+    analysis_runfiles_test(
+        name = "{}_transitive_runfiles_included".format(name),
+        tags = [name],
+        target_under_test = "//test/starlark_tests/targets_under_test/macos:unit_test_data_deps",
+        expected_runfiles = [
+            "test/starlark_tests/targets_under_test/macos/runfile1.txt",
+            "test/starlark_tests/targets_under_test/macos/runfile2.txt",
+        ],
     )
 
     native.test_suite(

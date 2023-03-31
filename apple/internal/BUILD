@@ -69,6 +69,18 @@ bzl_library(
 )
 
 bzl_library(
+    name = "experimental_mixed_language_library",
+    srcs = ["experimental_mixed_language_library.bzl"],
+    visibility = [
+        "//apple:__subpackages__",
+    ],
+    deps = [
+        "@bazel_skylib//lib:paths",
+        "@build_bazel_rules_swift//swift",
+    ],
+)
+
+bzl_library(
     name = "apple_universal_binary",
     srcs = ["apple_universal_binary.bzl"],
     visibility = [
@@ -287,6 +299,8 @@ bzl_library(
         "//apple:__subpackages__",
     ],
     deps = [
+        ":cc_toolchain_info_support",
+        ":entitlements_support",
         ":rule_support",
         "@bazel_skylib//lib:collections",
         "@build_bazel_apple_support//lib:lipo",

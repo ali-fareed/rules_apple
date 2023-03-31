@@ -98,6 +98,7 @@ def _apple_binary_impl(ctx):
     if binary_type == "executable":
         providers.append(
             apple_common.new_executable_binary_provider(
+                cc_info = link_result.cc_info,
                 objc = link_result.objc,
                 binary = binary_artifact,
             ),
@@ -182,8 +183,4 @@ rule is being provided for the purpose of transitioning users from the built-in
 implementation of `apple_binary` in Bazel core so that it can be removed.
 """,
     implementation = _apple_binary_impl,
-    implicit_outputs = {
-        # Provided for compatibility with built-in `apple_binary` only.
-        "lipobin": "%{name}_lipobin",
-    },
 )

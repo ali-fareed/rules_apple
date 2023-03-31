@@ -99,11 +99,6 @@ if [[ -n "${TEST_TYPE}" ]]; then
   runner_flags+=("--test_type=${TEST_TYPE}")
 fi
 
-# Constructs the json string to configure the test env and tests to run.
-# It will be written into a temp json file which is passed to the test runner
-# flags --launch_options_json_path.
-LAUNCH_OPTIONS_JSON_STR=""
-
 TEST_ENV="%(test_env)s"
 if [[ -n "$TEST_ENV" ]]; then
   TEST_ENV="$TEST_ENV,TEST_SRCDIR=$TEST_SRCDIR"
@@ -114,6 +109,7 @@ fi
 sanitizer_dyld_env=""
 readonly sanitizer_root="${TEST_BUNDLE_PATH}/Frameworks"
 for sanitizer in "$sanitizer_root"/libclang_rt.*.dylib; do
+  [[ -e "$sanitizer" ]] || continue
   if [[ -n "$sanitizer_dyld_env" ]]; then
     sanitizer_dyld_env="$sanitizer_dyld_env:"
   fi
@@ -135,7 +131,7 @@ fi
 TEST_ENV=$(echo "$TEST_ENV" | awk -F ',' '{for (i=1; i <=NF; i++) { d = index($i, "="); print substr($i, 1, d-1) "\":\"" substr($i, d+1); }}')
 TEST_ENV=${TEST_ENV//$'\n'/\",\"}
 TEST_ENV="{\"${TEST_ENV}\"}"
-LAUNCH_OPTIONS_JSON_STR="\"env_vars\":${TEST_ENV}"
+LAUNCH_OPTIONS_JSON_STR="\"startup_timeout_sec\": ${STARTUP_TIMEOUT_SEC:-150}, \"env_vars\":${TEST_ENV}"
 
 if [[ -n "${command_line_args}" ]]; then
   if [[ -n "${LAUNCH_OPTIONS_JSON_STR}" ]]; then
@@ -165,7 +161,7 @@ if [[ -n "$TESTBRIDGE_TEST_ONLY" || -n "$TEST_FILTER" ]]; then
   else
     ALL_TESTS=("$TEST_FILTER")
   fi
-  
+
   for TEST in $ALL_TESTS; do
     if [[ $TEST == -* ]]; then
       if [[ -n "$SKIP_TESTS" ]]; then
@@ -258,7 +254,7 @@ xcrun llvm-profdata merge "$profraw" --output "$profdata"
 lcov_args=(
   -instr-profile "$profdata"
   -ignore-filename-regex='.*external/.+'
-  -path-equivalence="$ROOT,."
+  -path-equivalence=".,$PWD"
 )
 has_binary=false
 IFS=";"
@@ -277,13 +273,19 @@ for binary in $TEST_BINARIES_FOR_LLVM_COV; do
   lcov_args+=("-arch=$arch")
 done
 
+llvm_coverage_manifest="$COVERAGE_MANIFEST"
+readonly provided_coverage_manifest="%(test_coverage_manifest)s"
+if [[ -s "${provided_coverage_manifest:-}" ]]; then
+  llvm_coverage_manifest="$provided_coverage_manifest"
+fi
+
 readonly error_file="$TMP_DIR/llvm-cov-error.txt"
 llvm_cov_status=0
 xcrun llvm-cov \
   export \
   -format lcov \
   "${lcov_args[@]}" \
-  @"$COVERAGE_MANIFEST" \
+  @"$llvm_coverage_manifest" \
   > "$COVERAGE_OUTPUT_FILE" \
   2> "$error_file" \
   || llvm_cov_status=$?
@@ -302,7 +304,7 @@ if [[ -n "${COVERAGE_PRODUCE_JSON:-}" ]]; then
     export \
     -format text \
     "${lcov_args[@]}" \
-    @"$COVERAGE_MANIFEST" \
+    @"$llvm_coverage_manifest" \
     > "$TEST_UNDECLARED_OUTPUTS_DIR/coverage.json" \
     2> "$error_file" \
     || llvm_cov_json_export_status=$?

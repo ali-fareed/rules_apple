@@ -109,8 +109,8 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "build_bazel_rules_apple",
-    sha256 = "f003875c248544009c8e8ae03906bbdacb970bc3e5931b40cd76cadeded99632",
-    url = "https://github.com/bazelbuild/rules_apple/releases/download/1.1.0/rules_apple.1.1.0.tar.gz",
+    sha256 = "90e3b5e8ff942be134e64a83499974203ea64797fd620eddeb71b3a8e1bff681",
+    url = "https://github.com/bazelbuild/rules_apple/releases/download/1.1.2/rules_apple.1.1.2.tar.gz",
 )
 
 load(
@@ -201,7 +201,6 @@ objc_library(
          "UrlGet/main.m",
     ],
     hdrs = glob(["UrlGet/*.h"]),
-    data = ["UrlGet/UrlGetViewController.xib"],
 )
 ```
 
@@ -223,8 +222,9 @@ ios_application(
         "iphone",
         "ipad",
     ],
-    minimum_os_version = "15.0",
     infoplists = [":UrlGet/UrlGet-Info.plist"],
+    launch_storyboard = "UrlGet/UrlGetViewController.xib",
+    minimum_os_version = "15.0",
     visibility = ["//visibility:public"],
     deps = [":UrlGetClasses"],
 )
@@ -301,9 +301,9 @@ version and device will be used when launching the app.
 ### Generate an Xcode project
 
 There are a few community-provided solutions (such as [rules_xcodeproj](https://github.com/buildbuddy-io/rules_xcodeproj)
-and [Tulsi](https://tulsi.bazel.build/)) to help generating Xcode 
-projects. By doing so, you will be able to write, debug, and test 
-iOS/macOS/watchOS/tvOS applications as if you were using the Xcode build system.
+) to help generating Xcode projects. By doing so, you will be able to write,
+debug, and test iOS/macOS/watchOS/tvOS applications as if you were using the
+Xcode build system.
 
 Let's see how to do so with `rules_xcodeproj`.
 
@@ -311,14 +311,13 @@ Open the `WORKSPACE` file again and add the following:
 
 ```starlark
 http_archive(
-    name = "com_github_buildbuddy_io_rules_xcodeproj",
-    sha256 = "c76958e21b7ea48a40fe4130e57911670281f23be93965573b4e90be47d779b4",
-    strip_prefix = "rules_xcodeproj-47d9510b64878ae1893d355cbf134d6a4b6eb715",
-    url = "https://github.com/buildbuddy-io/rules_xcodeproj/archive/47d9510b64878ae1893d355cbf134d6a4b6eb715.tar.gz",
+    name = "rules_xcodeproj",
+    sha256 = "7967b372bd1777214ce65c87a82ac0630150b7504b443de0315ea52e45758e0c",
+    url = "https://github.com/buildbuddy-io/rules_xcodeproj/releases/download/1.3.3/release.tar.gz",
 )
 
 load(
-    "@com_github_buildbuddy_io_rules_xcodeproj//xcodeproj:repositories.bzl",
+    "@rules_xcodeproj//xcodeproj:repositories.bzl",
     "xcodeproj_rules_dependencies",
 )
 
@@ -329,7 +328,7 @@ Add the following import at the top of the `BUILD` file:
 
 ```starlark
 load(
-    "@com_github_buildbuddy_io_rules_xcodeproj//xcodeproj:xcodeproj.bzl",
+    "@rules_xcodeproj//xcodeproj:defs.bzl",
     "top_level_target",
     "xcodeproj",
 )
@@ -340,7 +339,6 @@ We can now define the rule that will generate the Xcode project:
 ```starlark
 xcodeproj(
     name = "xcodeproj",
-    archived_bundles_allowed = True,
     build_mode = "bazel",
     project_name = "ios-app",
     tags = ["manual"],
@@ -408,7 +406,6 @@ support for building for a device:
 ```starlark
 xcodeproj(
     name = "xcodeproj",
-    archived_bundles_allowed = True,
     build_mode = "bazel",
     project_name = "ios-app",
     tags = ["manual"],
@@ -443,4 +440,3 @@ Xcode may provide other information as to what has gone wrong.
 For more details, see
 [main branch](https://github.com/bazelbuild/examples/tree/main/tutorial)
 of the GitHub repo.
-

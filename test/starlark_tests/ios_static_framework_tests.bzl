@@ -15,6 +15,10 @@
 """ios_static_framework Starlark tests."""
 
 load(
+    ":common.bzl",
+    "common",
+)
+load(
     ":rules/analysis_failure_message_test.bzl",
     "analysis_failure_message_test",
 )
@@ -32,7 +36,22 @@ def ios_static_framework_test_suite(name):
 
     # Tests Swift ios_static_framework builds correctly for sim_arm64, and x86_64 cpu's.
     archive_contents_test(
-        name = "{}_swift_sim_arm64_builds".format(name),
+        name = "{}_swift_sim_arm64_builds_using_cpu".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:swift_ios_static_framework",
+        apple_cpu = "ios_sim_arm64",
+        cpus = {
+            "ios_multi_cpus": [],
+        },
+        binary_test_file = "$BUNDLE_ROOT/SwiftFmwk",
+        binary_test_architecture = "arm64",
+        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "minos " + common.min_os_ios.arm_sim_support, "platform IOSSIMULATOR"],
+        macho_load_commands_not_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
+        tags = [name],
+    )
+
+    archive_contents_test(
+        name = "{}_swift_sim_arm64_builds_using_ios_multi_cpus".format(name),
         build_type = "simulator",
         target_under_test = "//test/starlark_tests/targets_under_test/ios:swift_ios_static_framework",
         cpus = {
@@ -40,7 +59,7 @@ def ios_static_framework_test_suite(name):
         },
         binary_test_file = "$BUNDLE_ROOT/SwiftFmwk",
         binary_test_architecture = "arm64",
-        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "platform IOSSIMULATOR"],
+        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "minos " + common.min_os_ios.arm_sim_support, "platform IOSSIMULATOR"],
         macho_load_commands_not_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
         tags = [name],
     )
@@ -53,8 +72,8 @@ def ios_static_framework_test_suite(name):
         },
         binary_test_file = "$BUNDLE_ROOT/SwiftFmwk",
         binary_test_architecture = "x86_64",
-        macho_load_commands_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
-        macho_load_commands_not_contain = ["cmd LC_BUILD_VERSION", "platform IOSSIMULATOR"],
+        macho_load_commands_contain = ["cmd LC_BUILD_VERSION", "minos " + common.min_os_ios.baseline, "platform IOSSIMULATOR"],
+        macho_load_commands_not_contain = ["cmd LC_VERSION_MIN_IPHONEOS"],
         tags = [name],
     )
 
@@ -150,6 +169,123 @@ def ios_static_framework_test_suite(name):
         name = "{}_umbrella_header_conflict_test".format(name),
         target_under_test = "//test/starlark_tests/targets_under_test/ios:static_framework_with_umbrella_header_conflict",
         expected_error = "Found imported header file(s) which conflict(s) with the name \"UmbrellaHeaderConflict.h\" of the generated umbrella header for this target. Check input files:\ntest/starlark_tests/resources/UmbrellaHeaderConflict.h\n\nPlease remove the references to these files from your rule's list of headers to import or rename the headers if necessary.",
+        tags = [name],
+    )
+
+    # Tests that attempting to generate dSYMs does not cause the build to fail
+    # (apple_static_library does not generate dSYMs, and the bundler should not
+    # unconditionally assume that the provider will be present).
+    archive_contents_test(
+        name = "{}_builds_with_dsyms_enabled_test".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:swift_ios_static_framework",
+        apple_generate_dsym = True,
+        contains = ["$BUNDLE_ROOT/SwiftFmwk"],
+        tags = [name],
+    )
+
+    # Verifies that bundle_name attribute changes the embedded static library, Clang module map,
+    # and the name of the framework bundle.
+    archive_contents_test(
+        name = "{}_bundle_name_contents_test".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:static_framework_with_generated_header",
+        contains = [
+            "$ARCHIVE_ROOT/SwiftFmwkWithGenHeader.framework/SwiftFmwkWithGenHeader",
+        ],
+        text_test_file = "$BUNDLE_ROOT/Modules/module.modulemap",
+        text_test_values = [
+            "module SwiftFmwkWithGenHeader",
+            "header \"SwiftFmwkWithGenHeader.h\"",
+        ],
+        tags = [name],
+    )
+
+    # Tests sdk_dylib and sdk_framework attributes are captured into the modulemap.
+    archive_contents_test(
+        name = "{}_generated_modulemap_file_content_test".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:static_framework_from_objc_library",
+        text_test_file = "$BUNDLE_ROOT/Modules/module.modulemap",
+        text_test_values = [
+            "link \"c++\"",
+            "link \"sqlite3\"",
+        ],
+        tags = [name],
+    )
+
+    # Tests framework bundle does not contain resources when "exclude_resources = True",
+    # but does include headers set in the "hdrs" attribute.
+    archive_contents_test(
+        name = "{}_excludes_transitive_resources_and_contains_header_test".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:static_framework_with_header_and_exclude_resources",
+        contains = [
+            "$BUNDLE_ROOT/static_framework_with_header_and_exclude_resources",
+            "$BUNDLE_ROOT/Headers/shared.h",
+            "$BUNDLE_ROOT/Modules/module.modulemap",
+        ],
+        not_contains = [
+            "$BUNDLE_ROOT/Info.plist",
+            "$BUNDLE_ROOT/Assets.car",
+            "$BUNDLE_ROOT/unversioned_datamodel.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/v1.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/v2.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/VersionInfo.plist",
+            "$BUNDLE_ROOT/storyboard_ios.storyboardc/",
+            "$BUNDLE_ROOT/nonlocalized.strings",
+            "$BUNDLE_ROOT/view_ios.nib",
+        ],
+        tags = [name],
+    )
+
+    # Tests framework bundle does not contain resources and headers
+    # when "exclude_resources = True" and "hdrs" is not set.
+    archive_contents_test(
+        name = "{}_excludes_transitive_resources_and_header_test".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:static_framework_with_no_header_and_exclude_resources",
+        contains = [
+            "$BUNDLE_ROOT/static_framework_with_no_header_and_exclude_resources",
+        ],
+        not_contains = [
+            "$BUNDLE_ROOT/Headers/shared.h",
+            "$BUNDLE_ROOT/Modules/module.modulemap",
+            "$BUNDLE_ROOT/Info.plist",
+            "$BUNDLE_ROOT/Assets.car",
+            "$BUNDLE_ROOT/unversioned_datamodel.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/v1.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/v2.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/VersionInfo.plist",
+            "$BUNDLE_ROOT/storyboard_ios.storyboardc/",
+            "$BUNDLE_ROOT/nonlocalized.strings",
+            "$BUNDLE_ROOT/view_ios.nib",
+        ],
+        tags = [name],
+    )
+
+    # Tests framework bundle contains the expected transitive resources
+    # when "exclude_resources = False".
+    archive_contents_test(
+        name = "{}_includes_transitive_resources_test".format(name),
+        build_type = "simulator",
+        target_under_test = "//test/starlark_tests/targets_under_test/ios:static_framework_with_transitive_resources",
+        contains = [
+            "$BUNDLE_ROOT/static_framework_with_transitive_resources",
+            "$BUNDLE_ROOT/Headers/shared.h",
+            "$BUNDLE_ROOT/Modules/module.modulemap",
+            "$BUNDLE_ROOT/Assets.car",
+            "$BUNDLE_ROOT/unversioned_datamodel.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/v1.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/v2.mom",
+            "$BUNDLE_ROOT/versioned_datamodel.momd/VersionInfo.plist",
+            "$BUNDLE_ROOT/storyboard_ios.storyboardc/",
+            "$BUNDLE_ROOT/nonlocalized.strings",
+            "$BUNDLE_ROOT/view_ios.nib",
+        ],
+        not_contains = ["$BUNDLE_ROOT/Info.plist"],
+        asset_catalog_test_file = "$BUNDLE_ROOT/Assets.car",
+        asset_catalog_test_contains = ["star_iphone"],
         tags = [name],
     )
 
