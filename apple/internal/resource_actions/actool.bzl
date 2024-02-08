@@ -241,10 +241,11 @@ def compile_asset_catalog(
         platform_prerequisites = platform_prerequisites,
         product_type = product_type,
     ))
-    args.extend(collections.before_each(
-        "--target-device",
-        platform_prerequisites.device_families,
-    ))
+    if platform_prerequisites.device_families != ["reality"]:
+        args.extend(collections.before_each(
+            "--target-device",
+            platform_prerequisites.device_families,
+        ))
 
     alticons_outputs = []
     actool_output_plist = None

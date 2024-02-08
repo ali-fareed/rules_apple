@@ -37,6 +37,8 @@ def _metal_apple_target_triple(platform_prerequisites):
     platform_string = str(platform.platform_type)
     if platform_string == "macos":
         platform_string = "macosx"
+    if platform_string == "visionos":
+        platform_string = "xros"
 
     environment = "" if platform.is_device else "-simulator"
 
