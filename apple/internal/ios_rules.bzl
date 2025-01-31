@@ -16,9 +16,11 @@
 
 load("@bazel_skylib//lib:collections.bzl", "collections")
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+load("@build_bazel_rules_swift//swift:swift.bzl", "SwiftInfo")
 load(
-    "@build_bazel_rules_apple//apple:providers.bzl",
+    "//apple:providers.bzl",
     "AppleBundleInfo",
+    "AppleFrameworkImportInfo",
     "ApplePlatformInfo",
     "IosAppClipBundleInfo",
     "IosExtensionBundleInfo",
@@ -28,61 +30,63 @@ load(
     "WatchosApplicationBundleInfo",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:apple_product_type.bzl",
+    "//apple/internal:apple_product_type.bzl",
     "apple_product_type",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:apple_toolchains.bzl",
+    "//apple/internal:apple_toolchains.bzl",
     "AppleMacToolsToolchainInfo",
     "AppleXPlatToolsToolchainInfo",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:bundling_support.bzl",
+    "//apple/internal:bundling_support.bzl",
     "bundle_id_suffix_default",
     "bundling_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:cc_info_support.bzl",
+    "//apple/internal:cc_info_support.bzl",
     "cc_info_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:codesigning_support.bzl",
+    "//apple/internal:codesigning_support.bzl",
     "codesigning_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:entitlements_support.bzl",
+    "//apple/internal:entitlements_support.bzl",
     "entitlements_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:features_support.bzl",
+    "//apple/internal:features_support.bzl",
     "features_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:framework_import_support.bzl",
+    "//apple/internal:framework_import_support.bzl",
     "libraries_to_link_for_dynamic_framework",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:linking_support.bzl",
+    "//apple/internal:linking_support.bzl",
     "linking_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:outputs.bzl",
+    "//apple/internal:outputs.bzl",
     "outputs",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:partials.bzl",
+    "//apple/internal:partials.bzl",
     "partials",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:platform_support.bzl",
+    "//apple/internal:platform_support.bzl",
     "platform_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:processor.bzl",
+    "//apple/internal:processor.bzl",
     "processor",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:providers.bzl",
+    "//apple/internal:providers.bzl",
+    "merge_apple_framework_import_info",
+    "new_appleexecutablebinaryinfo",
     "new_appleframeworkbundleinfo",
     "new_iosappclipbundleinfo",
     "new_iosapplicationbundleinfo",
@@ -93,62 +97,58 @@ load(
     "new_iosstaticframeworkbundleinfo",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:resources.bzl",
+    "//apple/internal:resources.bzl",
     "resources",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:rule_attrs.bzl",
+    "//apple/internal:rule_attrs.bzl",
     "rule_attrs",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:rule_factory.bzl",
+    "//apple/internal:rule_factory.bzl",
     "rule_factory",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:rule_support.bzl",
+    "//apple/internal:rule_support.bzl",
     "rule_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:run_support.bzl",
+    "//apple/internal:run_support.bzl",
     "run_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:stub_support.bzl",
+    "//apple/internal:stub_support.bzl",
     "stub_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:swift_support.bzl",
+    "//apple/internal:swift_support.bzl",
     "swift_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:transition_support.bzl",
+    "//apple/internal:transition_support.bzl",
     "transition_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal/aspects:framework_provider_aspect.bzl",
+    "//apple/internal/aspects:framework_provider_aspect.bzl",
     "framework_provider_aspect",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal/aspects:resource_aspect.bzl",
+    "//apple/internal/aspects:resource_aspect.bzl",
     "apple_resource_aspect",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal/aspects:swift_dynamic_framework_aspect.bzl",
+    "//apple/internal/aspects:swift_dynamic_framework_aspect.bzl",
     "SwiftDynamicFrameworkInfo",
     "swift_dynamic_framework_aspect",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal/utils:clang_rt_dylibs.bzl",
+    "//apple/internal/utils:clang_rt_dylibs.bzl",
     "clang_rt_dylibs",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal/utils:main_thread_checker_dylibs.bzl",
+    "//apple/internal/utils:main_thread_checker_dylibs.bzl",
     "main_thread_checker_dylibs",
 )
-load("@build_bazel_rules_swift//swift:swift.bzl", "SwiftInfo")
-
-# TODO: Remove once we drop bazel 7.x
-_OBJC_PROVIDER_LINKING = hasattr(apple_common.new_objc_provider(), "linkopt")
 
 def _ios_application_impl(ctx):
     """Implementation of ios_application."""
@@ -526,10 +526,9 @@ def _ios_application_impl(ctx):
                 processor_result.output_groups,
             )
         ),
-        linking_support.new_executable_binary_provider(
+        new_appleexecutablebinaryinfo(
             binary = binary_artifact,
             cc_info = link_result.cc_info,
-            objc = link_result.objc,
         ),
         # TODO(b/228856372): Remove when downstream users are migrated off this provider.
         link_result.debug_outputs_provider,
@@ -558,7 +557,11 @@ def _ios_app_clip_impl(ctx):
         suffix_default = ctx.attr._bundle_id_suffix_default,
         shared_capabilities = ctx.attr.shared_capabilities,
     )
-    embeddable_targets = ctx.attr.frameworks
+    bundle_verification_targets = [struct(target = ext) for ext in ctx.attr.extensions]
+    embeddable_targets = (
+        ctx.attr.frameworks +
+        ctx.attr.extensions
+    )
     executable_name = ctx.attr.executable_name
     features = features_support.compute_enabled_features(
         requested_features = ctx.features,
@@ -718,7 +721,7 @@ def _ios_app_clip_impl(ctx):
             platform_prerequisites = platform_prerequisites,
             provisioning_profile = getattr(ctx.file, "provisioning_profile", None),
             rule_descriptor = rule_descriptor,
-            targets = ctx.attr.deps + ctx.attr.frameworks,
+            targets = ctx.attr.deps + ctx.attr.extensions + ctx.attr.frameworks,
         ),
         partials.resources_partial(
             actions = actions,
@@ -726,6 +729,7 @@ def _ios_app_clip_impl(ctx):
             bundle_extension = bundle_extension,
             bundle_id = bundle_id,
             bundle_name = bundle_name,
+            bundle_verification_targets = bundle_verification_targets,
             environment_plist = ctx.file._environment_plist,
             executable_name = executable_name,
             launch_storyboard = ctx.file.launch_storyboard,
@@ -841,10 +845,9 @@ def _ios_app_clip_impl(ctx):
                 processor_result.output_groups,
             )
         ),
-        linking_support.new_executable_binary_provider(
+        new_appleexecutablebinaryinfo(
             binary = binary_artifact,
             cc_info = link_result.cc_info,
-            objc = link_result.objc,
         ),
         # TODO(b/228856372): Remove when downstream users are migrated off this provider.
         link_result.debug_outputs_provider,
@@ -1044,7 +1047,6 @@ def _ios_framework_impl(ctx):
             cc_features = cc_features,
             cc_info = link_result.cc_info,
             cc_toolchain = cc_toolchain,
-            objc_provider = link_result.objc,
             rule_label = label,
         ),
         partials.resources_partial(
@@ -1216,6 +1218,13 @@ def _ios_extension_impl(ctx):
     )
     binary_artifact = link_result.binary
     debug_outputs = linking_support.debug_outputs_by_architecture(link_result.outputs)
+
+    targets_with_framework_import_info = ctx.attr.deps + ctx.attr.frameworks
+    merged_apple_framework_import_info = merge_apple_framework_import_info([
+        x[AppleFrameworkImportInfo]
+        for x in targets_with_framework_import_info
+        if AppleFrameworkImportInfo in x
+    ])
 
     archive_for_embedding = outputs.archive_for_embedding(
         actions = actions,
@@ -1404,10 +1413,9 @@ def _ios_extension_impl(ctx):
         DefaultInfo(
             files = processor_result.output_files,
         ),
-        linking_support.new_executable_binary_provider(
+        new_appleexecutablebinaryinfo(
             binary = binary_artifact,
             cc_info = link_result.cc_info,
-            objc = link_result.objc,
         ),
         new_iosextensionbundleinfo(),
         OutputGroupInfo(
@@ -1416,6 +1424,7 @@ def _ios_extension_impl(ctx):
                 processor_result.output_groups,
             )
         ),
+        merged_apple_framework_import_info,
         # TODO(b/228856372): Remove when downstream users are migrated off this provider.
         link_result.debug_outputs_provider,
     ] + processor_result.providers
@@ -1623,7 +1632,6 @@ def _ios_dynamic_framework_impl(ctx):
             cc_features = cc_features,
             cc_info = link_result.cc_info,
             cc_toolchain = cc_toolchain,
-            objc_provider = link_result.objc,
             rule_label = label,
         ),
         partials.resources_partial(
@@ -1707,12 +1715,6 @@ def _ios_dynamic_framework_impl(ctx):
                     ),
                 ),
             )
-            if _OBJC_PROVIDER_LINKING:
-                additional_providers.append(
-                    apple_common.new_objc_provider(
-                        dynamic_framework_file = provider.framework_files,
-                    ),
-                )
     providers.extend(additional_providers)
 
     return [
@@ -2161,6 +2163,13 @@ def _ios_imessage_extension_impl(ctx):
     binary_artifact = link_result.binary
     debug_outputs = linking_support.debug_outputs_by_architecture(link_result.outputs)
 
+    targets_with_framework_import_info = ctx.attr.deps + ctx.attr.frameworks
+    merged_apple_framework_import_info = merge_apple_framework_import_info([
+        x[AppleFrameworkImportInfo]
+        for x in targets_with_framework_import_info
+        if AppleFrameworkImportInfo in x
+    ])
+
     archive_for_embedding = outputs.archive_for_embedding(
         actions = actions,
         bundle_extension = bundle_extension,
@@ -2259,16 +2268,6 @@ def _ios_imessage_extension_impl(ctx):
             rule_label = label,
             targets_to_validate = ctx.attr.frameworks,
         ),
-        partials.framework_import_partial(
-            actions = actions,
-            apple_mac_toolchain_info = apple_mac_toolchain_info,
-            features = features,
-            label_name = label.name,
-            platform_prerequisites = platform_prerequisites,
-            provisioning_profile = provisioning_profile,
-            rule_descriptor = rule_descriptor,
-            targets = ctx.attr.deps + ctx.attr.frameworks,
-        ),
         partials.resources_partial(
             actions = actions,
             apple_mac_toolchain_info = apple_mac_toolchain_info,
@@ -2340,6 +2339,7 @@ def _ios_imessage_extension_impl(ctx):
                 processor_result.output_groups,
             )
         ),
+        merged_apple_framework_import_info,
         # TODO(b/228856372): Remove when downstream users are migrated off this provider.
         link_result.debug_outputs_provider,
     ] + processor_result.providers
@@ -2712,6 +2712,14 @@ The `.storyboard` or `.xib` file that should be used as the launch screen for th
 provided file will be compiled into the appropriate format (`.storyboardc` or `.nib`) and placed in
 the root of the final bundle. The generated file will also be registered in the bundle's
 Info.plist under the key `UILaunchStoryboardName`.
+""",
+            ),
+            "extensions": attr.label_list(
+                providers = [[AppleBundleInfo, IosExtensionBundleInfo]],
+                doc = """
+A list of ios_extension live activity extensions to include in the final app clip bundle.
+It is only possible to embed live activity WidgetKit extensions.
+Visit Apple developer documentation page for more info https://developer.apple.com/documentation/appclip/offering-live-activities-with-your-app-clip.
 """,
             ),
         },

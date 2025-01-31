@@ -23,11 +23,9 @@ load(
 load("//apple:providers.bzl", "AppleFrameworkImportInfo")
 load("//apple:utils.bzl", "group_files_by_directory")
 load("//apple/internal:providers.bzl", "new_appleframeworkimportinfo")
+load("//apple/internal/utils:bundle_paths.bzl", "bundle_paths")
 load("//apple/internal/utils:defines.bzl", "defines")
 load("//apple/internal/utils:files.bzl", "files")
-
-# TODO: Remove once we drop bazel 7.x
-_OBJC_PROVIDER_LINKING = hasattr(apple_common.new_objc_provider(), "linkopt")
 
 def _cc_info_with_dependencies(
         *,
@@ -153,10 +151,12 @@ def _classify_file_imports(config_vars, import_files):
             - module_map_imports: Clang modulemap imports.
             - swift_module_imports: Swift module imports.
             - swift_interface_imports: Swift module interface imports.
+            - dsym_imports: dSYM imports.
             - bundling_imports: Unclassified imports.
     """
     bundling_imports = []
     binary_imports = []
+    dsym_imports = []
     header_imports = []
     module_map_imports = []
     swift_module_imports = []
@@ -187,7 +187,7 @@ def _classify_file_imports(config_vars, import_files):
         if file_extension == "swiftmodule":
             swift_module_imports.append(file)
             continue
-        if file_extension == "swiftinterface":
+        if file_extension == "swiftinterface" and ".framework.dSYM/" not in file.short_path:
             swift_interface_imports.append(file)
             continue
         if file_extension in ["swiftdoc", "swiftsourceinfo"]:
@@ -195,6 +195,9 @@ def _classify_file_imports(config_vars, import_files):
             continue
         if file_extension == "a":
             binary_imports.append(file)
+            continue
+        if ".framework.dSYM/" in file.short_path:
+            dsym_imports.append(file)
             continue
 
         # Path matching
@@ -212,6 +215,7 @@ def _classify_file_imports(config_vars, import_files):
 
     return struct(
         binary_imports = binary_imports,
+        dsym_imports = dsym_imports,
         header_imports = header_imports,
         module_map_imports = module_map_imports,
         swift_interface_imports = swift_interface_imports,
@@ -262,6 +266,7 @@ def _classify_framework_imports(config_vars, framework_imports):
         bundle_name = bundle_name,
         binary_imports = binary_imports,
         bundling_imports = bundling_imports,
+        dsym_imports = framework_imports_by_category.dsym_imports,
         header_imports = framework_imports_by_category.header_imports,
         module_map_imports = framework_imports_by_category.module_map_imports,
         swift_interface_imports = framework_imports_by_category.swift_interface_imports,
@@ -401,6 +406,41 @@ def _get_swift_module_files_with_target_triplet(target_triplet, swift_module_fil
 
     return filtered_files
 
+def _get_dsym_binaries(dsym_imports):
+    """Returns a list of Files of all imported dSYM binaries."""
+    return [
+        file
+        for file in dsym_imports
+        if file.basename.lower() != "info.plist"
+    ]
+
+def _get_debug_info_binaries(dsym_binaries, framework_binaries):
+    """Return the list of files that provide debug info."""
+    all_binaries_dict = {}
+
+    for file in dsym_binaries:
+        dsym_bundle_path = bundle_paths.farthest_parent(
+            file.short_path,
+            "framework.dSYM",
+        )
+        dsym_bundle_basename = paths.basename(dsym_bundle_path)
+        framework_basename = dsym_bundle_basename.rstrip(".dSYM")
+        if framework_basename not in all_binaries_dict:
+            all_binaries_dict[framework_basename] = file
+
+    for file in framework_binaries:
+        if ".framework/" not in file.short_path:
+            continue
+        framework_path = bundle_paths.farthest_parent(
+            file.short_path,
+            "framework",
+        )
+        framework_basename = paths.basename(framework_path)
+        if framework_basename not in all_binaries_dict:
+            all_binaries_dict[framework_basename] = file
+
+    return all_binaries_dict.values()
+
 def _has_versioned_framework_files(framework_files):
     """Returns True if there are any versioned framework files (i.e. under Versions/ directory).
 
@@ -413,72 +453,6 @@ def _has_versioned_framework_files(framework_files):
         if ".framework/Versions/" in f.short_path:
             return True
     return False
-
-def _objc_provider_with_dependencies(
-        *,
-        additional_objc_provider_fields = {},
-        additional_objc_providers = [],
-        alwayslink = False,
-        library = None,
-        dynamic_framework_file = None,
-        sdk_dylib = None,
-        sdk_framework = None,
-        static_framework_file = None,
-        weak_sdk_framework = None):
-    """Returns a new Objc provider which includes transitive Objc dependencies.
-
-    Args:
-        additional_objc_provider_fields: Additional fields to set for the Objc provider constructor.
-        additional_objc_providers: Additional Objc providers to merge with this target provider.
-        alwayslink: Boolean to indicate if force_load_library should be set with the static
-            framework file.
-        library: File referencing a static library.
-        dynamic_framework_file: File referencing a framework dynamic library.
-        sdk_dylib: List of Apple SDK dylibs to link. Defaults to None.
-        sdk_framework: List of Apple SDK frameworks to link. Defaults to None.
-        static_framework_file: File referencing a framework static library.
-        weak_sdk_framework: List of Apple SDK frameworks to weakly link. Defaults to None.
-    Returns:
-        apple_common.Objc provider
-    """
-    objc_provider_fields = {}
-    objc_provider_fields["providers"] = additional_objc_providers
-
-    if library:
-        objc_provider_fields["library"] = depset(library)
-
-    if dynamic_framework_file:
-        objc_provider_fields["dynamic_framework_file"] = depset(dynamic_framework_file)
-
-    if static_framework_file:
-        objc_provider_fields["imported_library"] = depset(static_framework_file)
-
-        if alwayslink:
-            objc_provider_fields["force_load_library"] = depset(static_framework_file)
-
-    if sdk_dylib:
-        objc_provider_fields["sdk_dylib"] = depset(sdk_dylib)
-    if sdk_framework:
-        objc_provider_fields["sdk_framework"] = depset(sdk_framework)
-    if weak_sdk_framework:
-        objc_provider_fields["weak_sdk_framework"] = depset(weak_sdk_framework)
-
-    objc_provider_fields.update(**additional_objc_provider_fields)
-    if not _OBJC_PROVIDER_LINKING:
-        objc_provider_fields = {"providers": additional_objc_providers}
-
-    return apple_common.new_objc_provider(**objc_provider_fields)
-
-def _new_dynamic_framework_provider(**kwargs):
-    """A wrapper API for the Bazel API of the same name to better support multiple Bazel versions
-
-    Args:
-        **kwargs: Arguments to pass if supported.
-    """
-    if not _OBJC_PROVIDER_LINKING:
-        kwargs.pop("objc", None)
-
-    return apple_common.new_dynamic_framework_provider(**kwargs)
 
 def _swift_info_from_module_interface(
         *,
@@ -551,9 +525,9 @@ framework_import_support = struct(
     classify_framework_imports = _classify_framework_imports,
     framework_import_info_with_dependencies = _framework_import_info_with_dependencies,
     get_swift_module_files_with_target_triplet = _get_swift_module_files_with_target_triplet,
+    get_dsym_binaries = _get_dsym_binaries,
+    get_debug_info_binaries = _get_debug_info_binaries,
     has_versioned_framework_files = _has_versioned_framework_files,
-    new_dynamic_framework_provider = _new_dynamic_framework_provider,
-    objc_provider_with_dependencies = _objc_provider_with_dependencies,
     swift_info_from_module_interface = _swift_info_from_module_interface,
     swift_interop_info_with_dependencies = _swift_interop_info_with_dependencies,
 )

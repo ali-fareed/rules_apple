@@ -19,12 +19,12 @@ load(
     "dicts",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:apple_toolchains.bzl",
+    "//apple/internal:apple_toolchains.bzl",
     "AppleXPlatToolsToolchainInfo",
     "apple_toolchain_utils",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:providers.bzl",
+    "//apple/internal:providers.bzl",
     "new_applebundleversioninfo",
 )
 
@@ -254,8 +254,8 @@ apple_bundle_version(
     build_label_pattern = "MyApp_{version}_build_{build}",
     build_version = "{version}.{build}",
     capture_groups = {
-        "version": "\\d+\\.\\d+",
-        "build": "\\d+",
+        "version": "\\\\d+\\\\.\\\\d+",
+        "build": "\\\\d+",
     },
     short_version_string = "{version}",
     fallback_build_label = "MyApp_99.99_build_99",

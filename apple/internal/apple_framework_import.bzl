@@ -32,50 +32,50 @@ load(
 )
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain", "use_cpp_toolchain")
 load(
-    "@build_bazel_rules_apple//apple:providers.bzl",
-    "AppleFrameworkImportInfo",
-)
-load(
-    "@build_bazel_rules_apple//apple:utils.bzl",
-    "group_files_by_directory",
-)
-load(
-    "@build_bazel_rules_apple//apple/internal:apple_toolchains.bzl",
-    "AppleXPlatToolsToolchainInfo",
-)
-load(
-    "@build_bazel_rules_apple//apple/internal:cc_toolchain_info_support.bzl",
-    "cc_toolchain_info_support",
-)
-load(
-    "@build_bazel_rules_apple//apple/internal:experimental.bzl",
-    "is_experimental_tree_artifact_enabled",
-)
-load(
-    "@build_bazel_rules_apple//apple/internal:framework_import_support.bzl",
-    "framework_import_support",
-)
-load(
-    "@build_bazel_rules_apple//apple/internal:rule_attrs.bzl",
-    "rule_attrs",
-)
-load(
-    "@build_bazel_rules_apple//apple/internal/aspects:swift_usage_aspect.bzl",
-    "SwiftUsageInfo",
-)
-load(
-    "@build_bazel_rules_apple//apple/internal/providers:framework_import_bundle_info.bzl",
-    "AppleFrameworkImportBundleInfo",
-)
-load(
-    "@build_bazel_rules_apple//apple/internal/utils:bundle_paths.bzl",
-    "bundle_paths",
-)
-load(
     "@build_bazel_rules_swift//swift:swift.bzl",
     "SwiftToolchainInfo",
     "swift_clang_module_aspect",
     "swift_common",
+)
+load(
+    "//apple:providers.bzl",
+    "AppleFrameworkImportInfo",
+)
+load(
+    "//apple:utils.bzl",
+    "group_files_by_directory",
+)
+load(
+    "//apple/internal:apple_toolchains.bzl",
+    "AppleXPlatToolsToolchainInfo",
+)
+load(
+    "//apple/internal:cc_toolchain_info_support.bzl",
+    "cc_toolchain_info_support",
+)
+load(
+    "//apple/internal:experimental.bzl",
+    "is_experimental_tree_artifact_enabled",
+)
+load(
+    "//apple/internal:framework_import_support.bzl",
+    "framework_import_support",
+)
+load(
+    "//apple/internal:providers.bzl",
+    "new_appledynamicframeworkinfo",
+)
+load(
+    "//apple/internal:rule_attrs.bzl",
+    "rule_attrs",
+)
+load(
+    "//apple/internal/aspects:swift_usage_aspect.bzl",
+    "SwiftUsageInfo",
+)
+load(
+    "//apple/internal/providers:framework_import_bundle_info.bzl",
+    "AppleFrameworkImportBundleInfo",
 )
 
 def _swiftmodule_for_cpu(swiftmodule_files, cpu):
@@ -101,14 +101,6 @@ def _all_framework_binaries(frameworks_groups):
             binaries.append(binary)
 
     return binaries
-
-def _all_dsym_binaries(dsym_imports):
-    """Returns a list of Files of all imported dSYM binaries."""
-    return [
-        file
-        for file in dsym_imports
-        if file.basename.lower() != "info.plist"
-    ]
 
 def _get_framework_binary_file(framework_dir, framework_imports):
     """Returns the File that is the framework's binary."""
@@ -176,32 +168,6 @@ def _framework_search_paths(header_imports):
     else:
         return []
 
-def _debug_info_binaries(
-        dsym_binaries,
-        framework_binaries):
-    """Return the list of files that provide debug info."""
-    all_binaries_dict = {}
-
-    for file in dsym_binaries:
-        dsym_bundle_path = bundle_paths.farthest_parent(
-            file.short_path,
-            "framework.dSYM",
-        )
-        dsym_bundle_basename = paths.basename(dsym_bundle_path)
-        framework_basename = dsym_bundle_basename.rstrip(".dSYM")
-        all_binaries_dict[framework_basename] = file
-
-    for file in framework_binaries:
-        framework_path = bundle_paths.farthest_parent(
-            file.short_path,
-            "framework",
-        )
-        framework_basename = paths.basename(framework_path)
-        if framework_basename not in all_binaries_dict:
-            all_binaries_dict[framework_basename] = file
-
-    return all_binaries_dict.values()
-
 def _apple_dynamic_framework_import_impl(ctx):
     """Implementation for the apple_dynamic_framework_import rule."""
     actions = ctx.actions
@@ -235,11 +201,11 @@ def _apple_dynamic_framework_import_impl(ctx):
         framework_imports,
     )
 
-    dsym_binaries = _all_dsym_binaries(ctx.files.dsym_imports)
+    dsym_binaries = framework_import_support.get_dsym_binaries(ctx.files.dsym_imports)
     dsym_imports = ctx.files.dsym_imports
     framework_groups = _grouped_framework_files(framework_imports)
     framework_binaries = _all_framework_binaries(framework_groups)
-    debug_info_binaries = _debug_info_binaries(
+    debug_info_binaries = framework_import_support.get_debug_info_binaries(
         dsym_binaries = dsym_binaries,
         framework_binaries = framework_binaries,
     )
@@ -255,18 +221,6 @@ def _apple_dynamic_framework_import_impl(ctx):
             framework.bundling_imports
         ),
     ))
-
-    # Create apple_common.Objc provider.
-    transitive_objc_providers = [
-        dep[apple_common.Objc]
-        for dep in deps
-        if apple_common.Objc in dep
-    ]
-    objc_provider = framework_import_support.objc_provider_with_dependencies(
-        additional_objc_providers = transitive_objc_providers,
-        dynamic_framework_file = [] if ctx.attr.bundle_only else framework.binary_imports,
-    )
-    providers.append(objc_provider)
 
     # Create CcInfo provider.
     cc_info = framework_import_support.cc_info_with_dependencies(
@@ -293,8 +247,7 @@ def _apple_dynamic_framework_import_impl(ctx):
     # Create AppleDynamicFramework provider.
     framework_groups = _grouped_framework_files(framework_imports)
     framework_dirs_set = depset(framework_groups.keys())
-    providers.append(framework_import_support.new_dynamic_framework_provider(
-        objc = objc_provider,
+    providers.append(new_appledynamicframeworkinfo(
         cc_info = cc_info,
         framework_dirs = framework_dirs_set,
         framework_files = depset(framework_imports),
@@ -393,17 +346,6 @@ def _apple_static_framework_import_impl(ctx):
         for dep in deps
         if apple_common.Objc in dep
     ])
-    providers.append(
-        framework_import_support.objc_provider_with_dependencies(
-            additional_objc_provider_fields = additional_objc_provider_fields,
-            additional_objc_providers = additional_objc_providers,
-            alwayslink = alwayslink,
-            sdk_dylib = sdk_dylibs,
-            sdk_framework = sdk_frameworks,
-            static_framework_file = framework.binary_imports,
-            weak_sdk_framework = weak_sdk_frameworks,
-        ),
-    )
 
     linkopts = []
     if sdk_dylibs:

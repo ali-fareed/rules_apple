@@ -11,7 +11,7 @@ in Bazel, and by the
 [`swift_library` rule](https://github.com/bazelbuild/rules_swift/blob/master/doc/rules.md#swift_library)
 available from [rules_swift](https://github.com/bazelbuild/rules_swift).
 
-If you are looking for an easy way to build mixed language frameworks, check out [rules_ios](https://github.com/bazel-ios/rules_ios).
+If you are looking for an easy way to build mixed language frameworks, check out [rules_swift's `mixed_language_library`](https://github.com/bazelbuild/rules_swift/blob/master/doc/rules.md#mixed_language_library) or  [rules_ios](https://github.com/bazel-ios/rules_ios).
 
 ## Reference documentation
 
@@ -74,7 +74,7 @@ Besides these constraints this repo follows
 |:-------------------:|:-------------------:|:-------------------------:|:-------------------------:|
 | 8.x (most recent rolling) | 2.* | current | `master` |
 | 7.x | 2.* | current | `master` |
-| 6.x | 2.* | current | `master` |
+| 6.x | 2.* | 3.13.0 | `master` |
 | 5.x | 0.33.0 | 1.* | `bazel/5.x` |
 | 4.x | 0.30.0 | 0.32.0 | N/A |
 | 3.x | 0.20.0 | 0.21.2 | N/A |

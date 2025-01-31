@@ -59,7 +59,7 @@ load("//test/testdata/rules:substitution.bzl", "substitution")
 licenses(["notice"])
 
 package(
-    default_testonly = 1,
+    default_testonly = True,
     default_visibility = ["//test/starlark_tests:__subpackages__"],
 )
 
@@ -124,7 +124,7 @@ ios_application(
 
 ios_application(
     name = "app",
-    app_icons = ["//test/starlark_tests/resources:app_icons_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_ios"],
     bundle_id = "com.google.example",
     entitlements = "//test/starlark_tests/resources:entitlements.plist",
     families = ["iphone"],
@@ -160,7 +160,7 @@ ios_application(
 
 ios_application(
     name = "app_precompiled_resource_bundle",
-    app_icons = ["//test/starlark_tests/resources:app_icons_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_ios"],
     bundle_id = "com.google.example",
     entitlements = "//test/starlark_tests/resources:entitlements.plist",
     families = ["iphone"],
@@ -183,13 +183,13 @@ ios_application(
     ],
     deps = [
         "//test/starlark_tests/resources:basic_bundle_lib",
-        "//test/starlark_tests/resources:bundle_library_ios_lib",
         "//test/starlark_tests/resources:empty_strings_file_lib",
         "//test/starlark_tests/resources:ios_localized_assets_lib",
         "//test/starlark_tests/resources:ios_non_localized_assets_lib",
         "//test/starlark_tests/resources:nested_bundle_lib",
         "//test/starlark_tests/resources:objc_linkopt_lib",
         "//test/starlark_tests/resources:objc_main_lib",
+        "//test/starlark_tests/resources:precompiled_bundle_library_ios_lib",
         "//test/starlark_tests/resources:sticker_pack_ios_lib",
     ],
 )
@@ -306,7 +306,7 @@ ios_application(
 
 ios_application(
     name = "app_launch_images",
-    app_icons = ["//test/starlark_tests/resources:app_icons_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_ios"],
     bundle_id = "com.google.example",
     families = [
         "iphone",
@@ -378,7 +378,7 @@ ios_application(
 
 ios_application(
     name = "app_launch_images_from_library",
-    app_icons = ["//test/starlark_tests/resources:app_icons_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_ios"],
     bundle_id = "com.google.example",
     families = [
         "iphone",
@@ -398,7 +398,7 @@ ios_application(
 
 ios_application(
     name = "app_with_duplicated_library_scoped_launch_images",
-    app_icons = ["//test/starlark_tests/resources:app_icons_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_ios"],
     bundle_id = "com.google.example",
     families = [
         "iphone",
@@ -419,7 +419,7 @@ ios_application(
 
 ios_application(
     name = "app_with_top_level_and_library_scoped_launch_images",
-    app_icons = ["//test/starlark_tests/resources:app_icons_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_ios"],
     bundle_id = "com.google.example",
     families = [
         "iphone",
@@ -440,8 +440,8 @@ ios_application(
 
 ios_application(
     name = "app_with_alternate_icons",
-    alternate_icons = ["//test/starlark_tests/resources:alternate_icons_ios"],
-    app_icons = ["//test/starlark_tests/resources:app_icons_ios"],
+    alternate_icons = ["//test/testdata/resources:alternate_icons_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_ios"],
     bundle_id = "com.google.example",
     families = [
         "iphone",
@@ -462,8 +462,8 @@ ios_application(
 
 ios_application(
     name = "iphone_only_app_with_alternate_icons",
-    alternate_icons = ["//test/starlark_tests/resources:alternate_icons_ios"],
-    app_icons = ["//test/starlark_tests/resources:app_icons_ios"],
+    alternate_icons = ["//test/testdata/resources:alternate_icons_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_ios"],
     bundle_id = "com.google.example",
     families = [
         "iphone",
@@ -483,7 +483,7 @@ ios_application(
 
 ios_application(
     name = "app_with_alternate_app_icons",
-    app_icons = ["//test/starlark_tests/resources:app_icons_with_alts_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_with_alts_ios"],
     bundle_id = "com.google.example",
     families = [
         "iphone",
@@ -503,7 +503,7 @@ ios_application(
 
 ios_application(
     name = "app_with_alternate_app_icons_without_primary",
-    app_icons = ["//test/starlark_tests/resources:app_icons_with_alts_ios"],
+    app_icons = ["//test/testdata/resources:app_icons_with_alts_ios"],
     bundle_id = "com.google.example",
     families = [
         "iphone",
@@ -1068,6 +1068,23 @@ ios_application(
 )
 
 ios_application(
+    name = "app_with_multiple_precompiled_resource_bundles_with_shared_resources",
+    bundle_id = "com.google.example",
+    families = ["iphone"],
+    infoplists = [
+        "//test/starlark_tests/resources:Info.plist",
+    ],
+    minimum_os_version = common.min_os_ios.baseline,
+    provisioning_profile = "//test/testdata/provisioning:integration_testing_ios.mobileprovision",
+    tags = common.fixture_tags,
+    deps = [
+        "//test/starlark_tests/resources:objc_main_lib",
+        "//test/starlark_tests/resources:precompiled_bundle_library_apple_lib",
+        "//test/starlark_tests/resources:precompiled_bundle_library_ios_lib",
+    ],
+)
+
+ios_application(
     name = "app_with_resource_bundle_with_structured_resource_group",
     bundle_id = "com.google.example",
     families = ["iphone"],
@@ -1488,6 +1505,22 @@ ios_extension(
         "iphone",
         "ipad",
     ],
+    infoplists = [
+        "//test/starlark_tests/resources:Info.plist",
+    ],
+    minimum_os_version = common.min_os_ios.baseline,
+    provisioning_profile = "//test/testdata/provisioning:integration_testing_ios.mobileprovision",
+    tags = common.fixture_tags,
+    deps = [
+        "//test/starlark_tests/resources:swift_main_lib",
+    ],
+)
+
+ios_extension(
+    name = "swift_ios_app_clip_ext",
+    bundle_id = "com.google.example.clip.ext",
+    entitlements = "//test/starlark_tests/resources:entitlements.plist",
+    families = ["iphone"],
     infoplists = [
         "//test/starlark_tests/resources:Info.plist",
     ],
@@ -3172,6 +3205,40 @@ ios_imessage_extension(
     ],
 )
 
+ios_application(
+    name = "app_with_imessage_ext_with_imported_dynamic_xcfmwk",
+    bundle_id = "com.google.example",
+    extensions = [":imessage_ext_imported_dynamic_xcfmwk"],
+    families = [
+        "iphone",
+        "ipad",
+    ],
+    infoplists = [
+        "//test/starlark_tests/resources:Info.plist",
+    ],
+    minimum_os_version = common.min_os_ios.baseline,
+    provisioning_profile = "//test/testdata/provisioning:integration_testing_ios.mobileprovision",
+    tags = common.fixture_tags,
+    deps = [
+        "//test/starlark_tests/resources:objc_main_lib",
+    ],
+)
+
+ios_imessage_extension(
+    name = "imessage_ext_imported_dynamic_xcfmwk",
+    app_icons = ["//test/testdata/resources:message_ext_app_icon_ios"],
+    bundle_id = "com.google.example.MessagesExtension",
+    families = [
+        "iphone",
+        "ipad",
+    ],
+    infoplists = ["//test/starlark_tests/resources:MessagesExtensionInfo.plist"],
+    minimum_os_version = common.min_os_ios.baseline,
+    provisioning_profile = "//test/testdata/provisioning:integration_testing_ios.mobileprovision",
+    tags = common.fixture_tags,
+    deps = ["//test/starlark_tests/resources:swift_lib_importing_imported_dynamic_xcfw"],
+)
+
 ios_sticker_pack_extension(
     name = "sticker_ext",
     bundle_id = "com.google.example.stickerext",
@@ -4216,7 +4283,7 @@ objc_library(
     ],
     tags = common.fixture_tags,
     deps = [":framework_dependent_lib_with_resource"],
-    alwayslink = 1,
+    alwayslink = True,
 )
 
 objc_library(
@@ -4451,6 +4518,25 @@ ios_app_clip(
     ],
 )
 
+ios_app_clip(
+    name = "app_clip_with_ext",
+    bundle_id = "com.google.example.clip",
+    entitlements = "//test/starlark_tests/resources:entitlements.plist",
+    extensions = [":swift_ios_app_clip_ext"],
+    families = ["iphone"],
+    infoplists = [
+        "//test/starlark_tests/resources:Info.plist",
+    ],
+    minimum_os_version = common.min_os_ios.appclip_support,
+    provisioning_profile = "//test/testdata/provisioning:integration_testing_ios.mobileprovision",
+    tags = common.fixture_tags,
+    deps = [
+        ":objc_lib_with_ios_framework",
+        ":swift_lib_with_ios_framework",
+        "//test/starlark_tests/resources:objc_main_lib",
+    ],
+)
+
 # ---------------------------------------------------------------------------------------
 # Targets for importing XCFramework tests.
 
@@ -4488,6 +4574,42 @@ ios_application(
     tags = common.fixture_tags,
     deps = [
         "//test/starlark_tests/resources:objc_main_lib",
+        "//test/starlark_tests/resources:swift_lib_importing_imported_dynamic_xcfw",
+    ],
+)
+
+ios_application(
+    name = "app_with_ext_with_imported_dynamic_xcfmwk",
+    bundle_id = "com.google.example",
+    extensions = [":ext_with_imported_dynamic_xcfmwk"],
+    families = [
+        "iphone",
+        "ipad",
+    ],
+    infoplists = [
+        "//test/starlark_tests/resources:Info.plist",
+    ],
+    minimum_os_version = common.min_os_ios.baseline,
+    provisioning_profile = "//test/testdata/provisioning:integration_testing_ios.mobileprovision",
+    tags = common.fixture_tags,
+    deps = [
+        "//test/starlark_tests/resources:objc_main_lib",
+    ],
+)
+
+ios_extension(
+    name = "ext_with_imported_dynamic_xcfmwk",
+    bundle_id = "com.google.example.ext",
+    entitlements = "//test/starlark_tests/resources:entitlements.plist",
+    families = ["iphone"],
+    infoplists = [
+        "//test/starlark_tests/resources:Info.plist",
+    ],
+    minimum_os_version = common.min_os_ios.baseline,
+    provisioning_profile = "//test/testdata/provisioning:integration_testing_ios.mobileprovision",
+    tags = common.fixture_tags,
+    deps = [
+        "//test/starlark_tests/resources:objc_common_lib",
         "//test/starlark_tests/resources:swift_lib_importing_imported_dynamic_xcfw",
     ],
 )

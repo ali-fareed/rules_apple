@@ -28,28 +28,29 @@ load(
 )
 load("@build_bazel_apple_support//lib:lipo.bzl", "lipo")
 load(
-    "@build_bazel_rules_apple//apple:providers.bzl",
+    "//apple:providers.bzl",
     "AppleBundleVersionInfo",
     "AppleDsymBundleInfo",
+    "AppleFrameworkImportInfo",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:intermediates.bzl",
+    "//apple/internal:intermediates.bzl",
     "intermediates",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:providers.bzl",
+    "//apple/internal:providers.bzl",
     "new_appledsymbundleinfo",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:resource_actions.bzl",
+    "//apple/internal:resource_actions.bzl",
     "resource_actions",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal/providers:apple_debug_info.bzl",
+    "//apple/internal/providers:apple_debug_info.bzl",
     "AppleDebugInfo",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal/utils:defines.bzl",
+    "//apple/internal/utils:defines.bzl",
     "defines",
 )
 
@@ -382,6 +383,11 @@ def _debug_symbols_partial_impl(
         for x in debug_dependencies
         if AppleDebugInfo in x
     ]
+    deps_framework_import_infos = [
+        x[AppleFrameworkImportInfo]
+        for x in debug_dependencies
+        if AppleFrameworkImportInfo in x
+    ]
 
     debug_output_filename = bundle_name
     if debug_discriminator:
@@ -392,6 +398,7 @@ def _debug_symbols_partial_impl(
 
     direct_dsyms = []
     transitive_dsyms = [x.dsyms for x in deps_debug_info_providers]
+    transitive_dsyms.extend([x.dsym_imports for x in deps_framework_import_infos])
 
     direct_linkmaps = []
     transitive_linkmaps = [x.linkmaps for x in deps_debug_info_providers]
