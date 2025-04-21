@@ -201,6 +201,13 @@ apple_shell_test(
 )
 
 apple_shell_test(
+    name = "macos_test_runner_unit_test",
+    size = "large",
+    src = "macos_test_runner_unit_test.sh",
+    tags = common.skip_ci_tags,
+)
+
+apple_shell_test(
     name = "ios_xctestrun_runner_unit_test",
     size = "large",
     src = "ios_xctestrun_runner_unit_test.sh",
@@ -235,6 +242,16 @@ apple_shell_test(
     name = "ios_test_runner_unit_test_14.x",
     size = "large",
     src = "ios_test_runner_unit_test_14.x.sh",
+    args = [
+        "--ios_multi_cpus=sim_arm64,x86_64",
+    ],
+    tags = common.skip_ci_tags,
+)
+
+apple_shell_test(
+    name = "ios_xctest_swift_testing_runner_unit_test_17.x",
+    size = "large",
+    src = "ios_xctest_swift_testing_runner_unit_test_17.x.sh",
     args = [
         "--ios_multi_cpus=sim_arm64,x86_64",
     ],

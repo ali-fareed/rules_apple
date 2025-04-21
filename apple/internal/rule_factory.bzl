@@ -51,6 +51,11 @@ Dictionary of environment variables that should be set during the test execution
 the dictionary are subject to "Make" variable expansion.
 """,
     ),
+    "env_inherit": attr.string_list(
+        doc = """
+List of environment variables to inherit from the external environment.
+""",
+    ),
     "runner": attr.label(
         doc = """
 The runner target that will provide the logic on how to run the tests. Needs to provide the
@@ -135,6 +140,9 @@ def _create_apple_rule(
         ),
         cfg = cfg,
         doc = doc,
+        exec_compatible_with = [
+            "@platforms//os:macos",
+        ],
         executable = is_executable,
         fragments = ["apple", "cpp", "objc", "j2objc"],
         toolchains = toolchains,
@@ -166,6 +174,9 @@ def _create_apple_test_rule(*, doc, implementation, platform_type):
             *ide_visible_attrs
         ),
         doc = doc,
+        exec_compatible_with = [
+            "@platforms//os:macos",
+        ],
         test = True,
         toolchains = use_cpp_toolchain(),
     )
